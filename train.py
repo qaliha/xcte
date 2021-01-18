@@ -169,8 +169,9 @@ if __name__ == '__main__':
         model.Encoder.eval()
         model.Generator.eval()
 
-        bar_test = tqdm(enumerate(testing_data_loader, 1), total=data_len)
-        r_intermedient = random.randint(0, len(testing_data_loader))
+        data_len_test = len(testing_data_loader)
+        bar_test = tqdm(enumerate(testing_data_loader, 1), total=data_len_test)
+        r_intermedient = random.randint(0, data_len_test)
         for iteration, batch in bar_test:
             input = batch.to(device)
 
