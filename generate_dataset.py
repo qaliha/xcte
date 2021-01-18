@@ -67,7 +67,7 @@ def main(target_dataset_folder, dataset_path, crop_size, img_format, max_patches
     img_files = os.listdir(src_path)
 
     max = len(img_files)
-    bar = enumerate(tqdm(img_files, total=img_files), 0)
+    bar = tqdm(enumerate(img_files, 0), total=img_files)
     for files, i in bar:
         generate_patches(src_path, files, set_path, crop_size, img_format, max_patches)
 
