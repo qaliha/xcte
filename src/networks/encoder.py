@@ -8,7 +8,7 @@ from src.norm import channel
 from src.utils.compression import compress
 
 class Encoder(nn.Module):
-    def __init__(self, cuda=None):
+    def __init__(self, cuda=False):
         super(Encoder, self).__init__()
 
         self.activation = nn.LeakyReLU(0.2)
