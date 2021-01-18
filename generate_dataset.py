@@ -67,13 +67,15 @@ def main(target_dataset_folder, dataset_path, crop_size, img_format, max_patches
     img_files = os.listdir(src_path)
 
     max = len(img_files)
-    bar = tqdm(enumerate(img_files, 0), total=img_files)
-    for files, i in bar:
+    bar = tqdm(img_files)
+    i = 0
+    for files in bar:
         generate_patches(src_path, files, set_path, crop_size, img_format, max_patches)
 
         bar.set_description(desc='itr: %d/%d' %(
             i, max
         ))
+        i += 1
 
     print('Dataset Created')
 
