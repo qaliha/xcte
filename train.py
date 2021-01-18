@@ -203,13 +203,13 @@ if __name__ == '__main__':
             psnr_enc_lists.append(_tmp_psnr_compressed)
             ssim_enc_lists.append(_tmp_ssim_compressed)
 
-            bar_test.set_description(desc='itr: %d/%d [%3d/%3d] C[P: {:.4f}db S: {:.4f}] E[P: {:.4f}db S: {:.4f}] Testing Image' %(
+            bar_test.set_description(desc='itr: %d/%d [%3d/%3d] C[P: %.4fdb S: %.4f] E[P: %.4fdb S: %.4f] Testing Image' %(
                 iteration, data_len, epoch, num_epoch - 1,
                 _tmp_psnr_compressed, _tmp_ssim_compressed,
                 _tmp_psnr_expanded, _tmp_ssim_expanded
             ))
 
-        print('[%3d/%3d] C[P: {:.4f}db S: {:.4f}] E[P: {:.4f}db S: {:.4f}] <-- Average' %(
+        print('[%3d/%3d] C[P: %.4fdb S: %.4f] E[P: %.4fdb S: %.4f] <-- Average' %(
             epoch, num_epoch - 1,
             np.mean(psnr_enc_lists), np.mean(ssim_enc_lists),
             np.mean(psnr_lists), np.mean(ssim_lists)
