@@ -1,5 +1,5 @@
 import numpy as np
-from skimage.metric import structural_similarity
+from skimage.metrics import structural_similarity
 
 def ssim(image_out, image_ref):
     image_out = np.array(image_out, dtype='float')
