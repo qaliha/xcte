@@ -180,8 +180,8 @@ if __name__ == '__main__':
                 expanded_image = model.Generator(compressed_image)
             
             if r_intermedient == (iteration-1):
-                if not os.path.exists("intermediet"):
-                    os.mkdir("intermediet")
+                if not os.path.exists("interm"):
+                    os.mkdir("interm")
 
                 save_img(input.detach().squeeze(0).cpu(), '{}_input.png'.format(epoch))
                 save_img(compressed_image.detach().squeeze(0).cpu(), '{}_compressed.png'.format(epoch))
