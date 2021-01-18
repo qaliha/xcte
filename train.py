@@ -10,7 +10,7 @@ import numpy as np
 
 from src.model import Model
 from src.scheduler import get_scheduler, update_learning_rate
-from src.utils.tensor import save_img
+from src.utils.tensor import save_img, tensor2img
 from src.utils.metric import psnr, ssim
 
 from loader_data import get_test_set, get_training_set
@@ -187,11 +187,15 @@ if __name__ == '__main__':
                 save_img(compressed_image.detach().squeeze(0).cpu(), '{}_compressed.png'.format(epoch))
                 save_img(expanded_image.detach().squeeze(0).cpu(), '{}_expanded.png'.format(epoch))
 
-            _tmp_psnr_compressed = psnr(input, compressed_image)
-            _tmp_ssim_compressed = ssim(compressed_image, input)
+            input_img = tensor2img(input)
+            compressed_img = tensor2img(compressed_image)
+            expanded_img = tensor2img(expanded_image)
 
-            _tmp_psnr_expanded = psnr(input, expanded_image)
-            _tmp_ssim_expanded = ssim(expanded_image, input)
+            _tmp_psnr_compressed = psnr(input_img, compressed_img)
+            _tmp_ssim_compressed = ssim(compressed_img, input_img)
+
+            _tmp_psnr_expanded = psnr(input_img, expanded_img)
+            _tmp_ssim_expanded = ssim(expanded_img, input_img)
 
             psnr_lists.append(_tmp_psnr_expanded)
             ssim_lists.append(_tmp_ssim_expanded)
