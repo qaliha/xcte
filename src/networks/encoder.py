@@ -8,13 +8,15 @@ from src.norm import channel
 from src.utils.compression import compress
 
 class Encoder(nn.Module):
-    def __init__(self):
+    def __init__(self, cuda=None):
         super(Encoder, self).__init__()
 
         self.activation = nn.LeakyReLU(0.2)
         self.norm = channel.ChannelNorm2D_wrap
-
+        
         self.connection_weights = torch.tensor(0.5, requires_grad=True)
+        if cuda:
+            self.connection_weights = self.connection_weights.to(torch.device("cuda:0"))
 
         # (*, 12, 128, 128) -> (*, 3, 256, 256)
         self.pixel_shuffle = nn.PixelShuffle(2)

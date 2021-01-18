@@ -14,7 +14,7 @@ class Model(nn.Module):
     def __init__(self, bit=3, opt=None):
         super(Model, self).__init__()
 
-        self.Encoder = Encoder()
+        self.Encoder = Encoder(cuda=opt.cuda)
         self.Generator = Generator()
         self.Discriminator = Discriminator()
 
