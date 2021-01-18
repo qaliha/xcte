@@ -11,9 +11,9 @@ def is_image_file(filename):
     return any(filename.endswith(extension) for extension in [".png", ".PNG", ".jpg", ".jpeg"])
 
 class DatasetFromFolder(data.Dataset):
-    def __init__(self, image_dir, direction):
+    def __init__(self, image_dir):
         super(DatasetFromFolder, self).__init__()
-        self.direction = direction
+        # self.direction = direction
         self.a_path = join(image_dir, "a")
         # self.b_path = join(image_dir, "b")
         self.image_filenames = [x for x in listdir(self.a_path) if is_image_file(x)]

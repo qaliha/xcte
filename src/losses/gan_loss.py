@@ -3,13 +3,16 @@ import torch.nn as nn
 from torch.autograd import Variable
 
 class GANLoss(nn.Module):
-    def __init__(self, target_real_label=1.0, target_fake_label=0.0):
+    def __init__(self, cuda=False, target_real_label=1.0, target_fake_label=0.0):
         super(GANLoss, self).__init__()
         self.real_label = target_real_label
         self.fake_label = target_fake_label
         self.real_label_var = None
         self.fake_label_var = None
-        self.Tensor = torch.FloatTensor
+        if cuda:
+            self.Tensor = torch.cuda.FloatTensor
+        else:
+            self.Tensor = torch.FloatTensor
 
         self.loss = nn.MSELoss()
 
