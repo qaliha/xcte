@@ -12,7 +12,8 @@ class FeatureExtractor(nn.Module):
         super(FeatureExtractor, self).__init__()
 
         self.activation = nn.LeakyReLU(0.2)
-        norm = channel.ChannelNorm2D_wrap
+        norm = nn.BatchNorm2d
+        # norm = channel.ChannelNorm2D_wrap
 
         cnn_kwargs = dict(stride=2, padding=0, padding_mode='reflect')
         norm_kwargs = dict(momentum=0.1, affine=True, track_running_stats=False)
