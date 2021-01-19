@@ -13,7 +13,11 @@ squared_difference = torch.nn.MSELoss(reduction='mean')
 
 opt_encoder = optim.Adam(E.parameters(), lr=0.0002, betas=(0.5, 0.999))
 
+# Parameters encoder before
 before = list(E.parameters())[0].clone()
+
+for name, param in E.named_parameters():
+    print(name)
 
 input = torch.randn((2, 3, 256, 256), requires_grad=True)
 
@@ -22,9 +26,6 @@ image = compress(image, 3)
 
 # Normalize the output first
 image = normalize(image)
-
-for param in E.parameters():
-    param.requires_grad = False
 
 image = G(image)
 
@@ -37,6 +38,7 @@ opt_encoder.zero_grad()
 compression_losses.backward()
 opt_encoder.step()
 
+# Parameters encoder after
 after = list(E.parameters())[0].clone()
 
 assert(torch.all(torch.eq(before, after)) == False)
