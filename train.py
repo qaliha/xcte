@@ -118,6 +118,7 @@ if __name__ == '__main__':
                 iteration, data_len, epoch, num_epoch - 1
             ))
 
+        data_len = len(training_data_loader)
         bar_ex = tqdm(enumerate(training_data_loader, 1), total=data_len)
 
         t_discriminator_loss = 0
