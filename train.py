@@ -118,6 +118,9 @@ if __name__ == '__main__':
             # try to expanding the image
             image = batch.to(device)
             compressed_image = compressed_images[iteration-1].to(device)
+
+            print(image)
+            print(compressed_image)
             
             assert(compressed_image.requires_grad == False)
 
@@ -149,8 +152,8 @@ if __name__ == '__main__':
             # assert(expanded.requires_grad)
             # assert(image.requires_grad)
 
-            save_img(expanded.detach().squeeze(0).cpu(), 'interm/generated.png')
-            save_img(image.detach().squeeze(0).cpu(), 'interm/inputed.png')
+            # save_img(expanded.detach().squeeze(0).cpu(), 'interm/generated.png')
+            # save_img(image.detach().squeeze(0).cpu(), 'interm/inputed.png')
 
             generator_losses = gan_losses + decoder_losses + perceptual_losses
 
