@@ -4,6 +4,7 @@ import random
 
 import torch
 import torch.optim as optim
+from torch.autograd import Variable
 from torch.utils.data import DataLoader
 
 import numpy as np
@@ -107,34 +108,76 @@ if __name__ == '__main__':
 
         bar_ex = tqdm(enumerate(training_data_loader, 1), total=data_len)
 
+        t_discriminator_loss = 0
+        t_generator_losses = 0
+
         model.Generator.train()
         model.Discriminator.train()
         # Updating generator and discriminator parameters here
         for iteration, batch in bar_ex:
             # try to expanding the image
             image = batch.to(device)
-            compressed_image = compressed_images[iteration-1]
+            compressed_image = compressed_images[iteration-1].to(device)
+            
+            assert(compressed_image.requires_grad == False)
 
-            # Zero gradient
-            opt_generator.zero_grad()
+            expanded = model.Generator(compressed_image)
+
             opt_discriminator.zero_grad()
 
-            discriminator_loss, generator_losses = model.gd_training(compressed_image, image)
+            # Update discriminator
+            fake_ab = model.Discriminator(torch.cat((compressed_image, expanded), 1).detach())
+            loss_d_fake = model.gan_loss(fake_ab, False)
 
-            # Backward losses and step optimizer
-            generator_losses.backward()
-            opt_generator.step()
+            real_ab = model.Discriminator(torch.cat((compressed_image, image), 1))
+            loss_d_real = model.gan_loss(real_ab, True)
+
+            discriminator_loss = (loss_d_fake + loss_d_real) * 0.5
 
             discriminator_loss.backward()
             opt_discriminator.step()
 
+            opt_generator.zero_grad()
+
+            # Update generator
+            fake_ab = model.Discriminator(torch.cat((compressed_image, expanded), 1))
+
+            gan_losses = model.gan_loss(fake_ab, True)
+            decoder_losses = model.squared_difference(expanded, image)
+            perceptual_losses = model.perceptual_loss(expanded, image)
+
+            # assert(expanded.requires_grad)
+            # assert(image.requires_grad)
+
+            save_img(expanded.detach().squeeze(0).cpu(), 'interm/generated.png')
+            save_img(image.detach().squeeze(0).cpu(), 'interm/inputed.png')
+
+            generator_losses = gan_losses + decoder_losses + perceptual_losses
+
+            # discriminator_loss, generator_losses = model.gd_training(compressed_image, image)
+
+            # Backward losses and step optimizer
+            # Zero gradient
+            
+            generator_losses.backward()
+            opt_generator.step()
+
+            t_discriminator_loss += discriminator_loss.item()
+            t_generator_losses += generator_losses.item()
+
+            # assert(list(model.Encoder.parameters())[0].grad is None)
+            # assert(list(model.Generator.parameters())[0].grad is not None)
+            # assert(list(model.Discriminator.parameters())[0].grad is not None)
+
             bar_ex.set_description(desc='itr: %d/%d [%3d/%3d] [D_Loss: %.6f] [G_Loss: %.6f] Training Generator' %(
                 iteration, data_len, epoch, num_epoch - 1,
-                discriminator_loss.item(),
-                generator_losses.item()
+                t_discriminator_loss/max(1, iteration),
+                t_generator_losses/max(1, iteration)
             ))
 
         bar_enc = tqdm(enumerate(training_data_loader, 1), total=data_len)
+
+        t_compression_losses = 0
 
         # Updating encoding parameters here
         model.Encoder.train()
@@ -150,9 +193,13 @@ if __name__ == '__main__':
             compression_losses.backward()
             opt_encoder.step()
 
+            t_compression_losses += compression_losses.item()
+
+            # assert(list(model.Encoder.parameters())[0].grad is not None)
+
             bar_enc.set_description(desc='itr: %d/%d [%3d/%3d] [E_Loss: %.6f] Training Encoder' %(
                 iteration, data_len, epoch, num_epoch - 1,
-                compression_losses.item()
+                t_compression_losses/max(1, iteration)
             ))
 
         update_learning_rate(sch_encoder, opt_encoder)
@@ -183,9 +230,9 @@ if __name__ == '__main__':
                 if not os.path.exists("interm"):
                     os.mkdir("interm")
 
-                save_img(input.detach().squeeze(0).cpu(), '{}_input.png'.format(epoch))
-                save_img(compressed_image.detach().squeeze(0).cpu(), '{}_compressed.png'.format(epoch))
-                save_img(expanded_image.detach().squeeze(0).cpu(), '{}_expanded.png'.format(epoch))
+                save_img(input.detach().squeeze(0).cpu(), 'interm/{}_input.png'.format(epoch))
+                save_img(compressed_image.detach().squeeze(0).cpu(), 'interm/{}_compressed.png'.format(epoch))
+                save_img(expanded_image.detach().squeeze(0).cpu(), 'interm/{}_expanded.png'.format(epoch))
 
             input_img = tensor2img(input)
             compressed_img = tensor2img(compressed_image)
