@@ -161,7 +161,7 @@ if __name__ == '__main__':
 
             gan_losses = model.gan_loss(fake_ab, True)
             decoder_losses = model.squared_difference(expanded, image) * 0.5
-            perceptual_losses = model.perceptual_loss(expanded, image)
+            # perceptual_losses = model.perceptual_loss(expanded, image)
 
             # assert(expanded.requires_grad)
             # assert(image.requires_grad)
@@ -170,7 +170,7 @@ if __name__ == '__main__':
             # save_img(image.detach().squeeze(0).cpu(), 'interm/inputed.png')
             # save_img(compressed_image.detach().squeeze(0).cpu(), 'interm/compress.png')
 
-            generator_losses = gan_losses + decoder_losses + perceptual_losses
+            generator_losses = gan_losses + decoder_losses
 
             # discriminator_loss, generator_losses = model.gd_training(compressed_image, image)
 
