@@ -151,8 +151,8 @@ if __name__ == '__main__':
             # assert(expanded.requires_grad)
             # assert(image.requires_grad)
 
-            save_img(expanded.detach().squeeze(0).cpu(), 'interm/generated.png')
-            save_img(image.detach().squeeze(0).cpu(), 'interm/inputed.png')
+            # save_img(expanded.detach().squeeze(0).cpu(), 'interm/generated.png')
+            # save_img(image.detach().squeeze(0).cpu(), 'interm/inputed.png')
 
             generator_losses = gan_losses + decoder_losses + perceptual_losses
 
