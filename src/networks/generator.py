@@ -69,6 +69,7 @@ class ResidualBlock(nn.Module):
         
         norm_kwargs = dict(momentum=0.1, affine=True, track_running_stats=False)
 
+        # nn.BatchNorm2d
         self.conv1 = ConvLayer(channels, channels, kernel_size=3, stride=1)
         self.in1 = nn.BatchNorm2d(channels, **norm_kwargs)
 

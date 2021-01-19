@@ -14,6 +14,7 @@ from src.scheduler import get_scheduler, update_learning_rate
 from src.utils.tensor import save_img, tensor2img
 from src.utils.metric import psnr, ssim
 
+from loader import normalize
 from loader_data import get_test_set, get_training_set
 from tqdm import tqdm
 
@@ -117,10 +118,8 @@ if __name__ == '__main__':
         for iteration, batch in bar_ex:
             # try to expanding the image
             image = batch.to(device)
-            compressed_image = compressed_images[iteration-1].to(device)
-
-            print(image)
-            print(compressed_image)
+            # first normalize the image!
+            compressed_image = normalize(compressed_images[iteration-1]).to(device)
             
             assert(compressed_image.requires_grad == False)
 
@@ -152,8 +151,8 @@ if __name__ == '__main__':
             # assert(expanded.requires_grad)
             # assert(image.requires_grad)
 
-            # save_img(expanded.detach().squeeze(0).cpu(), 'interm/generated.png')
-            # save_img(image.detach().squeeze(0).cpu(), 'interm/inputed.png')
+            save_img(expanded.detach().squeeze(0).cpu(), 'interm/generated.png')
+            save_img(image.detach().squeeze(0).cpu(), 'interm/inputed.png')
 
             generator_losses = gan_losses + decoder_losses + perceptual_losses
 

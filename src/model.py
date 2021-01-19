@@ -11,6 +11,7 @@ from src.networks.discriminator import Discriminator
 from src.losses.gan_loss import GANLoss
 from src.losses.perceptual import VGGLoss
 
+from loader import normalize
 class Model(nn.Module):
     def __init__(self, bit=3, opt=None):
         super(Model, self).__init__()
@@ -74,7 +75,9 @@ class Model(nn.Module):
     def e_train(self, original):
         x = self.Encoder(original)
         x = compress(x, self.bit_size)
-
+        
+        # Normalize the output first
+        x = normalize(x)
         x = self.Generator(x)
 
         compression_losses = self.squared_difference(x, original)
