@@ -217,7 +217,7 @@ if __name__ == '__main__':
 
             x = model.Generator(x)
 
-            compression_losses = model.squared_difference(x, image)
+            compression_losses = model.squared_difference(x, image) * 0.5
 
             # compression_losses = model.e_train(image)
 
@@ -297,7 +297,7 @@ if __name__ == '__main__':
             ssim_enc_lists.append(_tmp_ssim_compressed)
 
             bar_test.set_description(desc='itr: %d/%d [%3d/%3d] C[P: %.4fdb S: %.4f] E[P: %.4fdb S: %.4f] Testing Image' %(
-                iteration, data_len, epoch, num_epoch - 1,
+                iteration, data_len_test, epoch, num_epoch - 1,
                 _tmp_psnr_compressed, _tmp_ssim_compressed,
                 _tmp_psnr_expanded, _tmp_ssim_expanded
             ))
