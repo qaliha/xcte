@@ -226,7 +226,9 @@ if __name__ == '__main__':
 
             with torch.no_grad():
                 compressed_image = model.compression_forward_eval(input)
-                expanded_image = model.Generator(compressed_image)
+
+                compressed_image_normalized = normalize(compressed_image)
+                expanded_image = model.Generator(compressed_image_normalized)
             
             if r_intermedient == (iteration-1):
                 if not os.path.exists("interm"):
