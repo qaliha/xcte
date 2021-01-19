@@ -109,7 +109,7 @@ if __name__ == '__main__':
             # compressed_images.append(compressed_image)
 
             # Save the compressed image to local disk
-            save_img(compressed_image.detach().squeeze(0).cpu(), file_name)
+            # save_img(compressed_image.detach().squeeze(0).cpu(), file_name)
 
             # Make sure not requires gradient
             assert(compressed_image.requires_grad == False)
@@ -165,9 +165,9 @@ if __name__ == '__main__':
             # assert(expanded.requires_grad)
             # assert(image.requires_grad)
 
-            save_img(expanded.detach().squeeze(0).cpu(), 'interm/generated.png')
-            save_img(image.detach().squeeze(0).cpu(), 'interm/inputed.png')
-            save_img(compressed_image.detach().squeeze(0).cpu(), 'interm/compress.png')
+            # save_img(expanded.detach().squeeze(0).cpu(), 'interm/generated.png')
+            # save_img(image.detach().squeeze(0).cpu(), 'interm/inputed.png')
+            # save_img(compressed_image.detach().squeeze(0).cpu(), 'interm/compress.png')
 
             generator_losses = gan_losses + decoder_losses + perceptual_losses
 
