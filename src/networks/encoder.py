@@ -90,7 +90,8 @@ class Encoder(nn.Module):
 
         self.feature_net = FeatureExtractor()
         
-        self.connection_weights = nn.Parameter(torch.empty(3, 256, 256).uniform_(0, 1))
+        # self.connection_weights = nn.Parameter(torch.empty(3, 256, 256).uniform_(0, 1))
+        self.connection_weights = nn.Parameter(torch.rand(1))
         if cuda:
             self.connection_weights = self.connection_weights.to(torch.device("cuda:0"))
             # self.connection_weights.requires_grad_(True)

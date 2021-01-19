@@ -45,11 +45,23 @@ class Model(nn.Module):
         return compress(x, self.bit_size)
 
     def compression_forward_eval(self, x):
-        with torch.no_grad():
-            x = self.Encoder(x)
-            compressed = compress(x, self.bit_size)
+        x = self.Encoder(x)
+        compressed = compress(x, self.bit_size)
 
         return compressed
+
+    def set_requires_grad(self, nets, requires_grad=False):
+        """Set requies_grad=Fasle for all the networks to avoid unnecessary computations
+        Parameters:
+            nets (network list)   -- a list of networks
+            requires_grad (bool)  -- whether the networks require gradients or not
+        """
+        if not isinstance(nets, list):
+            nets = [nets]
+        for net in nets:
+            if net is not None:
+                for param in net.parameters():
+                    param.requires_grad = requires_grad
 
     # def gd_training(self, compressed, original):
     #     # Compressed = real_a, Original = real_b

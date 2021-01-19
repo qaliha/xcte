@@ -22,10 +22,13 @@ for name, param in E.named_parameters():
 input = torch.randn((2, 3, 256, 256), requires_grad=True)
 
 image = E(input)
-image = compress(image, 3)
+# image = compress(image, 3)
 
 # Normalize the output first
 image = normalize(image)
+
+for param in G.parameters():
+    param.requires_grad = False
 
 image = G(image)
 

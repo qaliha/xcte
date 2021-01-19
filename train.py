@@ -99,6 +99,7 @@ if __name__ == '__main__':
             image = batch[0].to(device)
             file_name = batch[2][0]
             
+            model.set_requires_grad(model.Encoder, False)
             compressed_image = model.compression_forward_eval(image).detach()
 
             # if iteration == 1:
@@ -132,8 +133,11 @@ if __name__ == '__main__':
             assert(compressed_image is not None)
             assert(compressed_image.requires_grad == False)
 
+            model.set_requires_grad(model.Generator, True)
+
             expanded = model.Generator(compressed_image)
 
+            model.set_requires_grad(model.Discriminator, True)
             opt_discriminator.zero_grad()
 
             # Update discriminator
@@ -148,6 +152,7 @@ if __name__ == '__main__':
             discriminator_loss.backward()
             opt_discriminator.step()
 
+            model.set_requires_grad(model.Discriminator, False)
             opt_generator.zero_grad()
 
             # Update generator
@@ -198,13 +203,17 @@ if __name__ == '__main__':
             # Original image
             image = batch[0].to(device)
 
+            model.set_requires_grad(model.Generator, False)
+            model.set_requires_grad(model.Encoder, True)
+
             opt_encoder.zero_grad()
 
             x = model.Encoder(image)
-            x = model.compress(x)
+            # x = model.compress(x)
             
             # Normalize the output first
             x = normalize(x)
+
             x = model.Generator(x)
 
             compression_losses = model.squared_difference(x, image)
@@ -248,17 +257,19 @@ if __name__ == '__main__':
         model.Encoder.eval()
         model.Generator.eval()
 
+        model.set_requires_grad(model.Encoder, False)
+        model.set_requires_grad(model.Generator, False)
+
         data_len_test = len(testing_data_loader)
         bar_test = tqdm(enumerate(testing_data_loader, 1), total=data_len_test)
         r_intermedient = random.randint(0, data_len_test)
         for iteration, batch in bar_test:
             input = batch[0].to(device)
 
-            with torch.no_grad():
-                compressed_image = model.compression_forward_eval(input)
+            compressed_image = model.compression_forward_eval(input)
 
-                compressed_image_normalized = normalize(compressed_image)
-                expanded_image = model.Generator(compressed_image_normalized)
+            compressed_image_normalized = normalize(compressed_image)
+            expanded_image = model.Generator(compressed_image_normalized)
             
             if r_intermedient == (iteration-1):
                 if not os.path.exists("interm"):
