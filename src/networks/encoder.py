@@ -12,7 +12,7 @@ class FeatureExtractor(nn.Module):
         super(FeatureExtractor, self).__init__()
 
         self.activation = nn.LeakyReLU(0.2)
-        self.norm = channel.ChannelNorm2D_wrap
+        norm = channel.ChannelNorm2D_wrap
 
         cnn_kwargs = dict(stride=2, padding=0, padding_mode='reflect')
         norm_kwargs = dict(momentum=0.1, affine=True, track_running_stats=False)
@@ -32,7 +32,7 @@ class FeatureExtractor(nn.Module):
         self.conv_block2 = nn.Sequential(
             self.asymmetric_pad,
             nn.Conv2d(8, 16, 3, **cnn_kwargs),
-            self.norm(16, **norm_kwargs),
+            norm(16, **norm_kwargs),
             self.activation,
         )
 
@@ -40,7 +40,7 @@ class FeatureExtractor(nn.Module):
         self.conv_block3 = nn.Sequential(
             self.asymmetric_pad,
             nn.Conv2d(16, 32, 3, **cnn_kwargs),
-            self.norm(32, **norm_kwargs),
+            norm(32, **norm_kwargs),
             self.activation,
         )
 
@@ -48,7 +48,7 @@ class FeatureExtractor(nn.Module):
         self.conv_block4 = nn.Sequential(
             self.asymmetric_pad,
             nn.Conv2d(32, 64, 3, **cnn_kwargs),
-            self.norm(64, **norm_kwargs),
+            norm(64, **norm_kwargs),
             self.activation,
         )
         
@@ -58,7 +58,7 @@ class FeatureExtractor(nn.Module):
         self.conv_block_out = nn.Sequential(
             self.post_pad,
             nn.Conv2d(64, 3, 3, stride=1),
-            self.norm(3, **norm_kwargs),
+            norm(3, **norm_kwargs),
             self.activation,
         )
 
