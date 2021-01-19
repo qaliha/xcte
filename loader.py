@@ -38,7 +38,7 @@ class DatasetFromFolder(data.Dataset):
         a = Image.open(join(self.a_path, self.image_filenames[index])).convert('RGB')
         a = transform_and_normalize(a)
 
-        b = None
+        b = list()
 
         # Load b if exists
         if exists(join(self.b_path, self.image_filenames[index])):
