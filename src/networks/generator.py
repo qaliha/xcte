@@ -69,21 +69,23 @@ class ResidualBlock(nn.Module):
         
         norm_kwargs = dict(momentum=0.1, affine=True, track_running_stats=False)
 
-        # nn.BatchNorm2d
+        # channel.ChannelNorm2D_wrap
         self.conv1 = ConvLayer(channels, channels, kernel_size=3, stride=1)
-        self.in1 = nn.BatchNorm2d(channels, **norm_kwargs)
+        self.in1 = channel.ChannelNorm2D_wrap(channels, **norm_kwargs)
 
         self.relu = nn.ReLU()
 
         self.conv2 = ConvLayer(channels, channels, kernel_size=3, stride=1)
-        self.in2 = nn.BatchNorm2d(channels, **norm_kwargs)
+        self.in2 = channel.ChannelNorm2D_wrap(channels, **norm_kwargs)
 
     def forward(self, x):
-        residual = x
+        identity = x
         out = self.relu(self.in1(self.conv1(x)))
         out = self.in2(self.conv2(out))
-        out = out + residual
+
+        out += identity
         out = self.relu(out)
+
         return out
 
 class Generator(nn.Module):
@@ -100,47 +102,47 @@ class Generator(nn.Module):
         self.upsample = nn.Upsample(scale_factor=2, mode='nearest')
         self.unshuffle = PixelUnshuffle(2)
 
-        self.conv_1 = ConvLayer(12, 32, kernel_size=9, stride=1)
-        self.in1_e = nn.BatchNorm2d(32, **norm_kwargs)
+        self.conv_1 = ConvLayer(12, 64, kernel_size=3, stride=1)
 
-        self.conv_2 = ConvLayer(32, 64, kernel_size=3, stride=2)
-        self.in2_e = nn.BatchNorm2d(64, **norm_kwargs)
+        # self.conv_2 = ConvLayer(32, 64, kernel_size=3, stride=2)
+        # self.in2_e = channel.ChannelNorm2D_wrap(64, **norm_kwargs)
         
-        self.conv_3 = ConvLayer(64, 128, kernel_size=3, stride=2)
-        self.in3_e = nn.BatchNorm2d(128, **norm_kwargs)
+        # self.conv_3 = ConvLayer(64, 128, kernel_size=3, stride=2)
+        # self.in3_e = channel.ChannelNorm2D_wrap(128, **norm_kwargs)
 
-        self.res1 = ResidualBlock(128)
-        self.res2 = ResidualBlock(128)
-        self.res3 = ResidualBlock(128)
-        self.res4 = ResidualBlock(128)
-        self.res5 = ResidualBlock(128)
-        self.res6 = ResidualBlock(128)
-        self.res7 = ResidualBlock(128)
-        self.res8 = ResidualBlock(128)
-        self.res9 = ResidualBlock(128)
+        self.res1 = ResidualBlock(64)
+        self.res2 = ResidualBlock(64)
+        self.res3 = ResidualBlock(64)
+        self.res4 = ResidualBlock(64)
+        self.res5 = ResidualBlock(64)
+        self.res6 = ResidualBlock(64)
+        self.res7 = ResidualBlock(64)
+        self.res8 = ResidualBlock(64)
+        self.res9 = ResidualBlock(64)
 
-        self.deconv_4 = UpsampleConvLayer(128, 128, kernel_size=3, stride=1)
-        self.in4_d = nn.BatchNorm2d(128, **norm_kwargs)
+        self.deconv_4 = UpsampleConvLayer(64, 64, kernel_size=3, stride=1)
+        self.in4_d = channel.ChannelNorm2D_wrap(64, **norm_kwargs)
 
-        self.deconv_3 = UpsampleConvLayer(128, 64, kernel_size=3, stride=1, upsample=2)
-        self.in3_d = nn.BatchNorm2d(64, **norm_kwargs)
+        # self.deconv_3 = UpsampleConvLayer(128, 64, kernel_size=3, stride=1, upsample=2)
+        # self.in3_d = channel.ChannelNorm2D_wrap(64, **norm_kwargs)
 
-        self.deconv_2 = UpsampleConvLayer(64, 32, kernel_size=3, stride=1, upsample=2)
-        self.in2_d = nn.BatchNorm2d(32, **norm_kwargs)
+        # self.deconv_2 = UpsampleConvLayer(64, 32, kernel_size=3, stride=1, upsample=2)
+        # self.in2_d = channel.ChannelNorm2D_wrap(32, **norm_kwargs)
 
-        self.deconv_1 = UpsampleConvLayer(32, 3, kernel_size=9, stride=1)
-        self.in1_d = nn.BatchNorm2d(3, **norm_kwargs)
+        self.deconv_1 = UpsampleConvLayer(64, 3, kernel_size=3, stride=1)
+        # self.in1_d = channel.ChannelNorm2D_wrap(3, **norm_kwargs)
 
     def forward(self, x):
         # Recovery from encoder
-        # (3, 256, 256) -> (3, 512, 512)
-        y = self.upsample(x)
         # (3, 512, 512) -> (12, 256, 256)
-        y = self.unshuffle(y)
+        y = self.unshuffle(x)
 
-        y = self.relu(self.in1_e(self.conv_1(y)))
-        y = self.relu(self.in2_e(self.conv_2(y)))
-        y = self.relu(self.in3_e(self.conv_3(y)))
+        # (3, 256, 256) -> (3, 512, 512)
+        y = self.upsample(y)
+
+        y = self.leakyRelu(self.conv_1(y))
+        # y = self.relu(self.in2_e(self.conv_2(y)))
+        # y = self.relu(self.in3_e(self.conv_3(y)))
 
         residual = y
         res = self.res1(y)
@@ -158,9 +160,9 @@ class Generator(nn.Module):
         res = res + residual
         y = self.leakyRelu(res)
 
-        y = self.relu(self.in3_d(self.deconv_3(y)))
-        y = self.relu(self.in2_d(self.deconv_2(y)))
-        out = self.tanh(self.in1_d(self.deconv_1(y)))
+        # y = self.relu(self.in3_d(self.deconv_3(y)))
+        # y = self.relu(self.in2_d(self.deconv_2(y)))
+        out = self.tanh(self.deconv_1(y))
 
         # y = self.conv_1(y)
         # y = self.conv_2(y)

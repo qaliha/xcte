@@ -57,6 +57,7 @@ if __name__ == '__main__':
     train_set = get_training_set(root_path + opt.dataset)
     test_set = get_test_set(root_path + opt.dataset)
     
+    compression_data_loader = DataLoader(dataset=train_set, num_workers=4, batch_size=1, shuffle=True)
     training_data_loader = DataLoader(dataset=train_set, num_workers=4, batch_size=opt.batch_size, shuffle=True)
     testing_data_loader = DataLoader(dataset=test_set, num_workers=4, batch_size=opt.test_batch_size, shuffle=False)
 
@@ -77,29 +78,38 @@ if __name__ == '__main__':
     start_epoch = opt.epoch_count
     if start_epoch > 1:
         pass
+    
+    parameters_encoder_bt = list(model.Encoder.parameters())[0].clone()
+    parameters_generator_bt = list(model.Generator.parameters())[0].clone()
+    parameters_discriminator_bt = list(model.Discriminator.parameters())[0].clone()
 
     num_epoch = opt.nepoch + 1
     for epoch in range(start_epoch, num_epoch):
         # starting the epoch
 
-        data_len = len(training_data_loader)
-        bar = tqdm(enumerate(training_data_loader, 1), total=data_len)
+        data_len = len(compression_data_loader)
+        bar = tqdm(enumerate(compression_data_loader, 1), total=data_len)
 
         # list of compressed image genrated by Encoder
-        compressed_images = list()
+        # compressed_images = list()
 
         model.Encoder.eval()
         for iteration, batch in bar:
             # compressing image
-            image = batch.to(device)
-
+            image = batch[0].to(device)
+            file_name = batch[2][0]
+            
             compressed_image = model.compression_forward_eval(image).detach()
 
             # if iteration == 1:
             #     save_img(image[0].squeeze(0), 'in.png')
             #     save_img(compressed_image[0].squeeze(0), 'try.png')
 
-            compressed_images.append(compressed_image)
+            # compressed_images.append(compressed_image)
+
+            # Save the compressed image to local disk
+            save_img(compressed_image.detach().squeeze(0).cpu(), file_name)
+
             # Make sure not requires gradient
             assert(compressed_image.requires_grad == False)
 
@@ -117,10 +127,9 @@ if __name__ == '__main__':
         # Updating generator and discriminator parameters here
         for iteration, batch in bar_ex:
             # try to expanding the image
-            image = batch.to(device)
-            # first normalize the image!
-            compressed_image = normalize(compressed_images[iteration-1]).to(device)
+            image, compressed_image = batch[0].to(device), batch[1].to(device)
             
+            assert(compressed_image is not None)
             assert(compressed_image.requires_grad == False)
 
             expanded = model.Generator(compressed_image)
@@ -145,14 +154,15 @@ if __name__ == '__main__':
             fake_ab = model.Discriminator(torch.cat((compressed_image, expanded), 1))
 
             gan_losses = model.gan_loss(fake_ab, True)
-            decoder_losses = model.squared_difference(expanded, image)
+            decoder_losses = model.squared_difference(expanded, image) * 0.5
             perceptual_losses = model.perceptual_loss(expanded, image)
 
             # assert(expanded.requires_grad)
             # assert(image.requires_grad)
 
-            # save_img(expanded.detach().squeeze(0).cpu(), 'interm/generated.png')
-            # save_img(image.detach().squeeze(0).cpu(), 'interm/inputed.png')
+            save_img(expanded.detach().squeeze(0).cpu(), 'interm/generated.png')
+            save_img(image.detach().squeeze(0).cpu(), 'interm/inputed.png')
+            save_img(compressed_image.detach().squeeze(0).cpu(), 'interm/compress.png')
 
             generator_losses = gan_losses + decoder_losses + perceptual_losses
 
@@ -186,11 +196,20 @@ if __name__ == '__main__':
         model.Generator.eval()
         for iteration, batch in bar_enc:
             # Original image
-            image = batch.to(device)
+            image = batch[0].to(device)
 
             opt_encoder.zero_grad()
 
-            compression_losses = model.e_train(image)
+            x = model.Encoder(image)
+            x = model.compress(x)
+            
+            # Normalize the output first
+            x = normalize(x)
+            x = model.Generator(x)
+
+            compression_losses = model.squared_difference(x, image)
+
+            # compression_losses = model.e_train(image)
 
             compression_losses.backward()
             opt_encoder.step()
@@ -208,6 +227,17 @@ if __name__ == '__main__':
         update_learning_rate(sch_generator, opt_generator)
         update_learning_rate(sch_discriminator, opt_discriminator)
 
+        parameters_generator_af = list(model.Generator.parameters())[0].clone()
+        parameters_discriminator_af = list(model.Discriminator.parameters())[0].clone()
+        parameters_encoder_af = list(model.Encoder.parameters())[0].clone()
+
+        assert(torch.all(torch.eq(parameters_generator_bt, parameters_generator_af)) == False)
+        assert(torch.all(torch.eq(parameters_discriminator_bt, parameters_discriminator_af)) == False)
+        assert(torch.all(torch.eq(parameters_encoder_bt, parameters_encoder_af)) == False)
+
+        # Check custom parameter
+        # print(model.Encoder.connection_weights)
+
         # Testing
         psnr_lists = list()
         ssim_lists = list()
@@ -222,7 +252,7 @@ if __name__ == '__main__':
         bar_test = tqdm(enumerate(testing_data_loader, 1), total=data_len_test)
         r_intermedient = random.randint(0, data_len_test)
         for iteration, batch in bar_test:
-            input = batch.to(device)
+            input = batch[0].to(device)
 
             with torch.no_grad():
                 compressed_image = model.compression_forward_eval(input)
@@ -262,8 +292,8 @@ if __name__ == '__main__':
 
         print('[%3d/%3d] C[P: %.4fdb S: %.4f] E[P: %.4fdb S: %.4f] <-- Average' %(
             epoch, num_epoch - 1,
-            np.mean(psnr_enc_lists), np.mean(ssim_enc_lists),
-            np.mean(psnr_lists), np.mean(ssim_lists)
+            np.ma.masked_invalid(psnr_enc_lists).mean(), np.ma.masked_invalid(ssim_enc_lists).mean(),
+            np.ma.masked_invalid(psnr_lists).mean(), np.ma.masked_invalid(ssim_lists).mean()
         ))
 
         # Generate checkpoint

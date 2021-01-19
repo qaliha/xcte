@@ -41,6 +41,9 @@ class Model(nn.Module):
 
         net.apply(init_func)
 
+    def compress(self, x):
+        return compress(x, self.bit_size)
+
     def compression_forward_eval(self, x):
         with torch.no_grad():
             x = self.Encoder(x)
@@ -72,16 +75,16 @@ class Model(nn.Module):
 
     #     return discriminator_loss, generator_losses
 
-    def e_train(self, original):
-        x = self.Encoder(original)
-        x = compress(x, self.bit_size)
+    # def e_train(self, original):
+    #     x = self.Encoder(original)
+    #     x = compress(x, self.bit_size)
         
-        # Normalize the output first
-        x = normalize(x)
-        x = self.Generator(x)
+    #     # Normalize the output first
+    #     x = normalize(x)
+    #     x = self.Generator(x)
 
-        compression_losses = self.squared_difference(x, original)
-        return compression_losses
+    #     compression_losses = self.squared_difference(x, original)
+    #     return compression_losses
 
     # def decompression_forward(self, x):
     #     self.Encoder.train()

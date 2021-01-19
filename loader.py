@@ -1,9 +1,11 @@
 from os import listdir
-from os.path import join
+from os.path import join, exists
 
 import torch
 import torch.utils.data as data
 import torchvision.transforms as transforms
+
+from generate_dataset import dir_exists, mkdir
 
 from PIL import Image
 
@@ -24,14 +26,26 @@ class DatasetFromFolder(data.Dataset):
     def __init__(self, image_dir):
         super(DatasetFromFolder, self).__init__()
         self.a_path = join(image_dir, "a")
+        self.b_path = join(image_dir, "b")
         self.image_filenames = [x for x in listdir(self.a_path) if is_image_file(x)]
 
+        if not dir_exists(self.b_path):
+            mkdir(self.b_path)
+
     def __getitem__(self, index):
+        self.current_index = index
+
         a = Image.open(join(self.a_path, self.image_filenames[index])).convert('RGB')
-        
         a = transform_and_normalize(a)
 
-        return a
+        b = None
+
+        # Load b if exists
+        if exists(join(self.b_path, self.image_filenames[index])):
+            b = Image.open(join(self.b_path, self.image_filenames[index])).convert('RGB')
+            b = transform_and_normalize(b)
+
+        return a, b, join(self.b_path, self.image_filenames[index])
 
     def __len__(self):
         return len(self.image_filenames)
