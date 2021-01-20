@@ -96,8 +96,7 @@ class Model(nn.Module):
 
         distortion_loss = self.distortion_loss(x_gen, x_real)
         perceptual_loss = self.perceptual_loss(x_gen, x_real, normalize=True)
-        print(distortion_loss)
-        print(perceptual_loss)
+
         weighted_distortion = distortion_loss * self.k_M
         weighted_perceptual = perceptual_loss * self.k_P
 
