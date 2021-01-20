@@ -81,8 +81,9 @@ class Model(nn.Module):
         if normalize:
             target = 2 * target  - 1
             pred = 2 * pred  - 1
-
-        return self.loss_fn_alex(target, pred)
+        
+        perp_loss = self.loss_fn_alex(target, pred)
+        return torch.mean(perp_loss)
 
     def compression_loss(self, reconstruction, input_image):
         x_real = input_image
@@ -95,7 +96,8 @@ class Model(nn.Module):
 
         distortion_loss = self.distortion_loss(x_gen, x_real)
         perceptual_loss = self.perceptual_loss(x_gen, x_real, normalize=True)
-
+        print(distortion_loss)
+        print(perceptual_loss)
         weighted_distortion = distortion_loss * self.k_M
         weighted_perceptual = perceptual_loss * self.k_P
 
