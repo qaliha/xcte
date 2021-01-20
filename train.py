@@ -133,7 +133,11 @@ if __name__ == '__main__':
         # Updating generator and discriminator parameters here
         for iteration, batch in bar_ex:
             # try to expanding the image
-            image, compressed_image = batch[0].to(device), batch[1].to(device)
+            image = batch[0].to(device)
+
+            assert(isinstance(batch[1], list) == False)
+
+            compressed_image = batch[1].to(device)
             
             assert(compressed_image is not None)
             assert(compressed_image.requires_grad == False)
