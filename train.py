@@ -314,8 +314,8 @@ if __name__ == '__main__':
             compressed_image = model.compress(prepare_for_compression_from_normalized_input(encoder_output.detach().squeeze(0).cpu()))
             # then normalize the image
             compressed_image_normalized = transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))(compressed_image)
-            # Add batch size
-            compressed_image_normalized = compressed_image_normalized.unsqueeze(0)
+            # Add batch size and attach to device
+            compressed_image_normalized = compressed_image_normalized.unsqueeze(0).to(device)
 
             # compressed_image_normalized = normalize(compressed_image)
             expanded_image = model.Generator(compressed_image_normalized)
