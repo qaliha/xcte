@@ -58,7 +58,7 @@ if __name__ == '__main__':
     train_set = get_training_set(root_path + opt.dataset)
     test_set = get_test_set(root_path + opt.dataset)
     
-    compression_data_loader = DataLoader(dataset=train_set, num_workers=4, batch_size=1, shuffle=True)
+    # compression_data_loader = DataLoader(dataset=train_set, num_workers=4, batch_size=opt.batch_size, shuffle=True)
     training_data_loader = DataLoader(dataset=train_set, num_workers=4, batch_size=opt.batch_size, shuffle=True)
     testing_data_loader = DataLoader(dataset=test_set, num_workers=4, batch_size=opt.test_batch_size, shuffle=False)
 
@@ -91,29 +91,32 @@ if __name__ == '__main__':
     for epoch in range(start_epoch, num_epoch):
         # starting the epoch
 
-        data_len = len(compression_data_loader)
-        bar = tqdm(enumerate(compression_data_loader, 1), total=data_len)
+        data_len = len(training_data_loader)
+        bar = tqdm(enumerate(training_data_loader, 1), total=data_len)
 
         # list of compressed image genrated by Encoder
-        # compressed_images = list()
-
+        compressed_images = list(range(data_len))
         model.Encoder.eval()
         for iteration, batch in bar:
             # compressing image
             image = batch[0].to(device)
-            file_name = batch[2][0]
-            
+
+            # file_name = batch[2][0]
+
             model.set_requires_grad(model.Encoder, False)
+
+            # Encoder [-1, 1], Compressed: [0, 1]
             compressed_image = model.compression_forward_eval(image).detach()
 
             # if iteration == 1:
             #     save_img(image[0].squeeze(0), 'in.png')
             #     save_img(compressed_image[0].squeeze(0), 'try.png')
 
-            # compressed_images.append(compressed_image)
+            compressed_images[batch[1].int()] = compressed_image
 
             # Save the compressed image to local disk
-            save_img(compressed_image.detach().squeeze(0).cpu(), file_name)
+            # [-1., 1.] -> [0., 1.] -> *255
+            # save_img(compressed_image.detach().squeeze(0).cpu(), file_name)
 
             # Make sure not requires gradient
             assert(compressed_image.requires_grad == False)
@@ -134,11 +137,14 @@ if __name__ == '__main__':
         for iteration, batch in bar_ex:
             # try to expanding the image
             image = batch[0].to(device)
+            # assert(isinstance(batch[1], list) == False)
 
-            assert(isinstance(batch[1], list) == False)
+            # compressed_image = batch[1].to(device)
+            compressed_image = compressed_images[batch[1].int()]
 
-            compressed_image = batch[1].to(device)
-            
+            # Normalize compressed image from [0, 1] to [-1, 0]
+            compressed_image = 2 * compressed_image  - 1
+
             assert(compressed_image is not None)
             assert(compressed_image.requires_grad == False)
 
@@ -168,15 +174,16 @@ if __name__ == '__main__':
             fake_ab = model.Discriminator(torch.cat((compressed_image, expanded), 1))
 
             gan_losses = model.gan_loss(fake_ab, True)
-            decoder_losses = model.squared_difference(expanded, image) * 0.5
+            decoder_losses = model.distortion_loss(expanded, image) * model.k_M
+
             # perceptual_losses = model.perceptual_loss(expanded, image)
 
             # assert(expanded.requires_grad)
             # assert(image.requires_grad)
 
-            # save_img(expanded.detach().squeeze(0).cpu(), 'interm/generated.png')
-            # save_img(image.detach().squeeze(0).cpu(), 'interm/inputed.png')
-            # save_img(compressed_image.detach().squeeze(0).cpu(), 'interm/compress.png')
+            save_img(expanded.detach().squeeze(0).cpu(), 'interm/generated.png')
+            save_img(image.detach().squeeze(0).cpu(), 'interm/inputed.png')
+            save_img(compressed_image.detach().squeeze(0).cpu(), 'interm/compress.png')
 
             generator_losses = gan_losses + decoder_losses
 
@@ -221,11 +228,10 @@ if __name__ == '__main__':
             # x = model.compress(x)
             
             # Normalize the output first
-            x = normalize(x)
-
+            # x = normalize(x)
             x = model.Generator(x)
 
-            compression_losses = model.squared_difference(x, image) * 0.5
+            compression_losses = model.compression_loss(x, image)
 
             # compression_losses = model.e_train(image)
 

@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 from torch.nn import init
 
+import lpips
+
 from src.utils.compression import compress
 
 from src.networks.encoder import Encoder
@@ -21,7 +23,7 @@ class Model(nn.Module):
         self.Discriminator = Discriminator()
 
         self.gan_loss = GANLoss(cuda=opt.cuda)
-        self.squared_difference = torch.nn.MSELoss(reduction='mean')
+        self.squared_difference = torch.nn.MSELoss(reduction='none')
         self.perceptual_loss = VGGLoss()
 
         self.__initialize_weights(self.Encoder)
@@ -29,6 +31,12 @@ class Model(nn.Module):
         self.__initialize_weights(self.Discriminator)
 
         self.bit_size = bit
+
+        self.k_M = 0.075 * 2**(-5)
+        self.k_P = 1.
+        self.beta = 0.15
+
+        self.loss_fn_alex = lpips.LPIPS(net='alex')
 
     def __initialize_weights(self, net):
         def init_func(m):
@@ -62,6 +70,36 @@ class Model(nn.Module):
             if net is not None:
                 for param in net.parameters():
                     param.requires_grad = requires_grad
+
+    def distortion_loss(self, x_gen, x_real):
+        # loss in [0,255] space but normalized by 255 to not be too big
+        # - Delegate scaling to weighting
+        sq_err = self.squared_difference(x_gen*255., x_real*255.) # / 255.
+        return torch.mean(sq_err)
+
+    def perceptual_loss(self, pred, target, normalize = True):
+        if normalize:
+            target = 2 * target  - 1
+            pred = 2 * pred  - 1
+
+        return self.loss_fn_alex(target, pred)
+
+    def compression_loss(self, reconstruction, input_image):
+        x_real = input_image
+        x_gen = reconstruction
+
+        # Normalize the input image
+        # [-1., 1.] -> [0., 1.]
+        x_real = (x_real + 1.) / 2.
+        x_gen = (x_gen + 1.) / 2
+
+        distortion_loss = self.distortion_loss(x_gen, x_real)
+        perceptual_loss = self.perceptual_loss(x_gen, x_real, normalize=True)
+
+        weighted_distortion = distortion_loss * self.k_M
+        weighted_perceptual = perceptual_loss * self.k_P
+
+        return weighted_distortion + weighted_perceptual
 
     # def gd_training(self, compressed, original):
     #     # Compressed = real_a, Original = real_b

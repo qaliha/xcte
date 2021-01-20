@@ -38,14 +38,7 @@ class DatasetFromFolder(data.Dataset):
         a = Image.open(join(self.a_path, self.image_filenames[index])).convert('RGB')
         a = transform_and_normalize(a)
 
-        b = list()
-
-        # Load b if exists
-        if exists(join(self.b_path, self.image_filenames[index])):
-            b = Image.open(join(self.b_path, self.image_filenames[index])).convert('RGB')
-            b = transform_and_normalize(b)
-
-        return a, b, join(self.b_path, self.image_filenames[index])
+        return a, index
 
     def __len__(self):
         return len(self.image_filenames)
