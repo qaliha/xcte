@@ -12,7 +12,7 @@ class FeatureExtractor(nn.Module):
         super(FeatureExtractor, self).__init__()
 
         self.activation = nn.ReLU()
-        norm = channel.InstanceNorm2D_wrap
+        norm = channel.ChannelNorm2D_wrap
         # norm = channel.ChannelNorm2D_wrap
 
         cnn_kwargs = dict(stride=2, padding=0, padding_mode='reflect')
