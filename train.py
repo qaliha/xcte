@@ -113,7 +113,7 @@ if __name__ == '__main__':
 
             # Encoder [-1, 1], Compressed: [0, 1]
             encoder_output = model.Encoder(image)
-            compressed_image = model.compress(prepare_for_compression_from_normalized_input(encoder_output.squeeze(0)))
+            compressed_image = model.compress(prepare_for_compression_from_normalized_input(encoder_output.detach().squeeze(0).cpu()))
             
             # save_img_version(image.detach().squeeze(0).cpu(), 'interm/encoder.png')
 
@@ -123,6 +123,7 @@ if __name__ == '__main__':
 
             if opt.debug:
                 save_img(compressed_image, compressed_path)
+
             # compressed_images.append(compressed_image)
             # batched_images.append(image)
 
@@ -310,7 +311,7 @@ if __name__ == '__main__':
             encoder_output = model.Encoder(input)
 
             # compress the image from encoder
-            compressed_image = model.compress(prepare_for_compression_from_normalized_input(encoder_output.squeeze(0)))
+            compressed_image = model.compress(prepare_for_compression_from_normalized_input(encoder_output.detach().squeeze(0).cpu()))
             # then normalize the image
             compressed_image_normalized = transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))(compressed_image)
             # Add batch size
