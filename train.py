@@ -191,7 +191,7 @@ if __name__ == '__main__':
             fake_ab = model.Discriminator(torch.cat((compressed_image, expanded), 1))
 
             gan_losses = model.gan_loss(fake_ab, True)
-            decoder_losses = model.distortion_loss(expanded, image) * model.k_M
+            decoder_losses = model.restruction_loss(expanded, image)
 
             # perceptual_losses = model.perceptual_loss(expanded, image)
 
