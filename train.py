@@ -13,7 +13,7 @@ import numpy as np
 
 from src.model import Model
 from src.scheduler import get_scheduler, update_learning_rate
-from src.utils.tensor import prepare_for_compression_from_normalized_input, save_img, save_img_version, tensor2img
+from src.utils.tensor import normalize_input_from_normalied, prepare_for_compression_from_normalized_input, save_img, save_img_version
 from src.utils.metric import psnr, ssim
 
 # from loader import normalize
@@ -328,9 +328,9 @@ if __name__ == '__main__':
                 save_img_version(compressed_image.detach().squeeze(0).cpu(), 'interm/{}_compressed.png'.format(epoch))
                 save_img_version(expanded_image.detach().squeeze(0).cpu(), 'interm/{}_expanded.png'.format(epoch))
 
-            input_img = tensor2img(input)
-            compressed_img = tensor2img(compressed_image)
-            expanded_img = tensor2img(expanded_image)
+            input_img = normalize_input_from_normalied(input)
+            compressed_img = normalize_input_from_normalied(compressed_image)
+            expanded_img = normalize_input_from_normalied(expanded_image)
 
             _tmp_psnr_compressed = psnr(input_img, compressed_img)
             _tmp_ssim_compressed = ssim(compressed_img, input_img)
