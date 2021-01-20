@@ -278,6 +278,8 @@ if __name__ == '__main__':
         model.set_requires_grad(model.Encoder, False)
         model.set_requires_grad(model.Generator, False)
 
+        count_inf = 0
+
         data_len_test = len(testing_data_loader)
         bar_test = tqdm(enumerate(testing_data_loader, 1), total=data_len_test)
         r_intermedient = random.randint(0, data_len_test)
@@ -307,6 +309,12 @@ if __name__ == '__main__':
             _tmp_psnr_expanded = psnr(input_img, expanded_img)
             _tmp_ssim_expanded = ssim(expanded_img, input_img)
 
+            if _tmp_psnr_compressed:
+                count_inf += 1
+
+            if _tmp_psnr_expanded:
+                count_inf += 1
+
             psnr_lists.append(_tmp_psnr_expanded)
             ssim_lists.append(_tmp_ssim_expanded)
 
@@ -319,10 +327,11 @@ if __name__ == '__main__':
                 _tmp_psnr_expanded, _tmp_ssim_expanded
             ))
 
-        print('[%3d/%3d] C[P: %.4fdb S: %.4f] E[P: %.4fdb S: %.4f] <-- Average' %(
+        print('[%3d/%3d] C[P: %.4fdb S: %.4f] E[P: %.4fdb S: %.4f] [Inf: %d] <-- Average' %(
             epoch, num_epoch - 1,
             np.ma.masked_invalid(psnr_enc_lists).mean(), np.ma.masked_invalid(ssim_enc_lists).mean(),
-            np.ma.masked_invalid(psnr_lists).mean(), np.ma.masked_invalid(ssim_lists).mean()
+            np.ma.masked_invalid(psnr_lists).mean(), np.ma.masked_invalid(ssim_lists).mean(),
+            count_inf
         ))
 
         # Generate checkpoint
