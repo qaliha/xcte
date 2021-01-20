@@ -11,8 +11,8 @@ class FeatureExtractor(nn.Module):
     def __init__(self):
         super(FeatureExtractor, self).__init__()
 
-        self.activation = nn.LeakyReLU(0.2)
-        norm = nn.BatchNorm2d
+        self.activation = nn.ReLU()
+        norm = channel.InstanceNorm2D_wrap
         # norm = channel.ChannelNorm2D_wrap
 
         cnn_kwargs = dict(stride=2, padding=0, padding_mode='reflect')
@@ -25,31 +25,31 @@ class FeatureExtractor(nn.Module):
         # (256,256) -> (256,256), with implicit padding
         self.conv_block1 = nn.Sequential(
             self.pre_pad,
-            nn.Conv2d(3, 8, kernel_size=(7,7), stride=1),
+            nn.Conv2d(3, 64, kernel_size=(7,7), stride=1),
             self.activation,
         )
 
         # (256,256) -> (128,128)
         self.conv_block2 = nn.Sequential(
             self.asymmetric_pad,
-            nn.Conv2d(8, 16, 3, **cnn_kwargs),
-            norm(16, **norm_kwargs),
+            nn.Conv2d(64, 128, 3, **cnn_kwargs),
+            norm(128, **norm_kwargs),
             self.activation,
         )
 
         # (128,128) -> (64,64)
         self.conv_block3 = nn.Sequential(
             self.asymmetric_pad,
-            nn.Conv2d(16, 32, 3, **cnn_kwargs),
-            norm(32, **norm_kwargs),
+            nn.Conv2d(128, 256, 3, **cnn_kwargs),
+            norm(256, **norm_kwargs),
             self.activation,
         )
 
         # (64,64) -> (32,32)
         self.conv_block4 = nn.Sequential(
             self.asymmetric_pad,
-            nn.Conv2d(32, 64, 3, **cnn_kwargs),
-            norm(64, **norm_kwargs),
+            nn.Conv2d(256, 512, 3, **cnn_kwargs),
+            norm(512, **norm_kwargs),
             self.activation,
         )
         
@@ -58,17 +58,17 @@ class FeatureExtractor(nn.Module):
         # (32,32) -> (32,32)
         self.conv_block_out = nn.Sequential(
             self.post_pad,
-            nn.Conv2d(64, 3, 3, stride=1),
-            norm(3, **norm_kwargs),
+            nn.Conv2d(512, 12, 3, stride=1),
+            norm(12, **norm_kwargs),
             self.activation,
         )
 
         # Upsample
-        self.context_conv = nn.Conv2d(3, 12, kernel_size=3, padding=1, padding_mode='reflect')
+        # self.context_conv = nn.Conv2d(3, 12, kernel_size=3, padding=1, padding_mode='reflect')
 
         # (*, 12, 128, 128) -> (*, 3, 256, 256)
+        self.context_upsample = nn.Upsample(scale_factor=4, mode='bicubic', align_corners=True)
         self.pixel_shuffle = nn.PixelShuffle(2)
-        self.context_upsample = nn.Upsample(scale_factor=4, mode='nearest')
 
     def forward(self, x):
         y = self.conv_block1(x)
@@ -77,7 +77,7 @@ class FeatureExtractor(nn.Module):
         y = self.conv_block4(y)
         y = self.conv_block_out(y)
 
-        y = self.activation(self.context_conv(y))
+        # y = self.activation(self.context_conv(y))
 
         # Upsample to get features
         y = self.context_upsample(y)
