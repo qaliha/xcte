@@ -220,7 +220,7 @@ if __name__ == '__main__':
         model.Generator.eval()
         for iteration, batch in bar_enc:
             # Original image
-            image = batch[0].to(device)
+            image = batch.to(device)
 
             model.set_requires_grad(model.Generator, False)
             model.set_requires_grad(model.Encoder, True)
@@ -282,7 +282,7 @@ if __name__ == '__main__':
         bar_test = tqdm(enumerate(testing_data_loader, 1), total=data_len_test)
         r_intermedient = random.randint(0, data_len_test)
         for iteration, batch in bar_test:
-            input = batch[0].to(device)
+            input = batch.to(device)
 
             compressed_image = model.compression_forward_eval(input)
 
