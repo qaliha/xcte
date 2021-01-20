@@ -328,9 +328,9 @@ if __name__ == '__main__':
                 save_img_version(compressed_image.detach().squeeze(0).cpu(), 'interm/{}_compressed.png'.format(epoch))
                 save_img_version(expanded_image.detach().squeeze(0).cpu(), 'interm/{}_expanded.png'.format(epoch))
 
-            input_img = normalize_input_from_normalied(input)
-            compressed_img = normalize_input_from_normalied(compressed_image)
-            expanded_img = normalize_input_from_normalied(expanded_image)
+            input_img = normalize_input_from_normalied(input.detach().squeeze(0).cpu())
+            compressed_img = normalize_input_from_normalied(compressed_image.detach().squeeze(0).cpu())
+            expanded_img = normalize_input_from_normalied(expanded_image.detach().squeeze(0).cpu())
 
             _tmp_psnr_compressed = psnr(input_img, compressed_img)
             _tmp_ssim_compressed = ssim(compressed_img, input_img)
