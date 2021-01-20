@@ -121,8 +121,8 @@ if __name__ == '__main__':
             #     save_img(image[0].squeeze(0), 'in.png')
             #     save_img(compressed_image[0].squeeze(0), 'try.png')
 
-            if opt.debug:
-                save_img(compressed_image, compressed_path)
+            # if opt.debug:
+            save_img(compressed_image, compressed_path)
 
             # compressed_images.append(compressed_image)
             # batched_images.append(image)
