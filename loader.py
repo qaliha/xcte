@@ -38,7 +38,7 @@ class DatasetFromFolder(data.Dataset):
         a = Image.open(join(self.a_path, self.image_filenames[index])).convert('RGB')
         a = transform_and_normalize(a)
 
-        return a, index
+        return a
 
     def __len__(self):
         return len(self.image_filenames)

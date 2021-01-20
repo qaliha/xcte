@@ -95,11 +95,13 @@ if __name__ == '__main__':
         bar = tqdm(enumerate(training_data_loader, 1), total=data_len)
 
         # list of compressed image genrated by Encoder
-        compressed_images = list(range(data_len))
+        compressed_images = list()
+        batched_images = list()
+
         model.Encoder.eval()
         for iteration, batch in bar:
             # compressing image
-            image = batch[0].to(device)
+            image = batch.to(device)
 
             # file_name = batch[2][0]
 
@@ -112,7 +114,8 @@ if __name__ == '__main__':
             #     save_img(image[0].squeeze(0), 'in.png')
             #     save_img(compressed_image[0].squeeze(0), 'try.png')
 
-            compressed_images[batch[1].int()] = compressed_image
+            compressed_images.append(compressed_image)
+            batched_images.append(image)
 
             # Save the compressed image to local disk
             # [-1., 1.] -> [0., 1.] -> *255
@@ -125,8 +128,8 @@ if __name__ == '__main__':
                 iteration, data_len, epoch, num_epoch - 1
             ))
 
-        data_len = len(training_data_loader)
-        bar_ex = tqdm(enumerate(training_data_loader, 1), total=data_len)
+        data_len = len(batched_images)
+        bar_ex = tqdm(enumerate(batched_images, 1), total=data_len)
 
         t_discriminator_loss = 0
         t_generator_losses = 0
@@ -136,11 +139,11 @@ if __name__ == '__main__':
         # Updating generator and discriminator parameters here
         for iteration, batch in bar_ex:
             # try to expanding the image
-            image = batch[0].to(device)
+            image = batch.to(device)
             # assert(isinstance(batch[1], list) == False)
 
             # compressed_image = batch[1].to(device)
-            compressed_image = compressed_images[batch[1].int()]
+            compressed_image = compressed_images[iteration-1]
 
             # Normalize compressed image from [0, 1] to [-1, 0]
             compressed_image = 2 * compressed_image  - 1
@@ -181,9 +184,9 @@ if __name__ == '__main__':
             # assert(expanded.requires_grad)
             # assert(image.requires_grad)
 
-            save_img(expanded.detach().squeeze(0).cpu(), 'interm/generated.png')
-            save_img(image.detach().squeeze(0).cpu(), 'interm/inputed.png')
-            save_img(compressed_image.detach().squeeze(0).cpu(), 'interm/compress.png')
+            # save_img(expanded.detach().squeeze(0).cpu(), 'interm/generated.png')
+            # save_img(image.detach().squeeze(0).cpu(), 'interm/inputed.png')
+            # save_img(compressed_image.detach().squeeze(0).cpu(), 'interm/compress.png')
 
             generator_losses = gan_losses + decoder_losses
 
