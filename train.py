@@ -2,6 +2,7 @@ import os
 import argparse
 import random
 
+from torchsummary import summary
 import torch
 import torch.optim as optim
 from torch.autograd import Variable
@@ -66,6 +67,9 @@ if __name__ == '__main__':
     print('===> Building models')
 
     model = Model(bit=opt.bit, opt=opt).to(device)
+
+    summary(model.Encoder, (3, 256, 256), opt.batch_size)
+    summary(model.Generator, (3, 256, 256), opt.batch_size)
 
     opt_encoder = optim.Adam(model.Encoder.parameters(), lr=opt.lr, betas=(0.5, 0.999))
     opt_generator = optim.Adam(model.Generator.parameters(), lr=opt.lr, betas=(0.5, 0.999))
