@@ -5,15 +5,15 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 
 from src.norm import channel
-from src.utils.compression import compress
+from src.utils.compression import _compress
 
 class FeatureExtractor(nn.Module):
     def __init__(self):
         super(FeatureExtractor, self).__init__()
 
         self.activation = nn.ReLU()
+        # norm = channel.InstanceNorm2D_wrap
         norm = channel.ChannelNorm2D_wrap
-        # norm = channel.ChannelNorm2D_wrap
 
         cnn_kwargs = dict(stride=2, padding=0, padding_mode='reflect')
         norm_kwargs = dict(momentum=0.1, affine=True, track_running_stats=False)
@@ -67,7 +67,8 @@ class FeatureExtractor(nn.Module):
         # self.context_conv = nn.Conv2d(3, 12, kernel_size=3, padding=1, padding_mode='reflect')
 
         # (*, 12, 128, 128) -> (*, 3, 256, 256)
-        self.context_upsample = nn.Upsample(scale_factor=4, mode='bicubic', align_corners=True)
+        # self.context_upsample = nn.Upsample(scale_factor=4, mode='bicubic', align_corners=True)
+        self.context_upsample = nn.Upsample(scale_factor=4, mode='nearest')
         self.pixel_shuffle = nn.PixelShuffle(2)
 
     def forward(self, x):
@@ -92,7 +93,7 @@ class Encoder(nn.Module):
         self.feature_net = FeatureExtractor()
         
         # self.connection_weights = nn.Parameter(torch.empty(3, 256, 256).uniform_(0, 1))
-        self.connection_weights = nn.Parameter(torch.tensor(0.5))
+        self.connection_weights = nn.Parameter(torch.tensor(0.9))
         # if cuda:
         #     self.connection_weights = self.connection_weights.to(torch.device("cuda:0"))
             # self.connection_weights.requires_grad_(True)
@@ -114,7 +115,7 @@ def trial():
 
     E = Encoder()
     x_encoded = E(x)
-    compressed_encoded = compress(x_encoded, 2)
+    compressed_encoded = _compress(x_encoded, 2)
 
     print(compressed_encoded.size())
     print(x.size())

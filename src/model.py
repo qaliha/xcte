@@ -4,7 +4,7 @@ from torch.nn import init
 
 import lpips
 
-from src.utils.compression import compress
+from src.utils.compression import _compress
 
 from src.networks.encoder import Encoder
 from src.networks.generator import Generator
@@ -13,7 +13,7 @@ from src.networks.discriminator import Discriminator
 from src.losses.gan_loss import GANLoss
 from src.losses.perceptual import VGGLoss
 
-from loader import normalize
+# from loader import normalize
 class Model(nn.Module):
     def __init__(self, bit=3, opt=None):
         super(Model, self).__init__()
@@ -50,11 +50,11 @@ class Model(nn.Module):
         net.apply(init_func)
 
     def compress(self, x):
-        return compress(x, self.bit_size)
+        return _compress(x, self.bit_size)
 
     def compression_forward_eval(self, x):
         x = self.Encoder(x)
-        compressed = compress(x, self.bit_size)
+        compressed = _compress(x, self.bit_size)
 
         return compressed
 

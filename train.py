@@ -4,6 +4,7 @@ import random
 
 from torchsummary import summary
 import torch
+import torchvision.transforms as transforms
 import torch.optim as optim
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
@@ -12,10 +13,10 @@ import numpy as np
 
 from src.model import Model
 from src.scheduler import get_scheduler, update_learning_rate
-from src.utils.tensor import save_img, tensor2img
+from src.utils.tensor import prepare_for_compression_from_normalized_input, save_img, save_img_version, tensor2img
 from src.utils.metric import psnr, ssim
 
-from loader import normalize
+# from loader import normalize
 from loader_data import get_test_set, get_training_set
 from tqdm import tqdm
 
@@ -34,6 +35,7 @@ if __name__ == '__main__':
     # parser.add_argument('--niter', type=int, default=100, help='# of iter at starting learning rate')
     # parser.add_argument('--niter_decay', type=int, default=100, help='# of iter to linearly decay learning rate to zero')
     parser.add_argument('--cuda', action='store_true', help='use cuda?')
+    parser.add_argument('--debug', action='store_true', help='use debug mode?')
     parser.add_argument('--epochsave', type=int, default=50, help='test')
     parser.add_argument('--batch_size', type=int, default=8, help='training batch size')
     parser.add_argument('--test_batch_size', type=int, default=1, help='testing batch size')
@@ -58,7 +60,7 @@ if __name__ == '__main__':
     train_set = get_training_set(root_path + opt.dataset)
     test_set = get_test_set(root_path + opt.dataset)
     
-    # compression_data_loader = DataLoader(dataset=train_set, num_workers=4, batch_size=opt.batch_size, shuffle=True)
+    compression_data_loader = DataLoader(dataset=train_set, num_workers=4, batch_size=1, shuffle=True)
     training_data_loader = DataLoader(dataset=train_set, num_workers=4, batch_size=opt.batch_size, shuffle=True)
     testing_data_loader = DataLoader(dataset=test_set, num_workers=4, batch_size=opt.test_batch_size, shuffle=False)
 
@@ -91,35 +93,41 @@ if __name__ == '__main__':
     for epoch in range(start_epoch, num_epoch):
         # starting the epoch
 
-        data_len = len(training_data_loader)
-        bar = tqdm(enumerate(training_data_loader, 1), total=data_len)
+        data_len = len(compression_data_loader)
+        bar = tqdm(enumerate(compression_data_loader, 1), total=data_len)
 
         # list of compressed image genrated by Encoder
-        compressed_images = list()
-        batched_images = list()
+        # compressed_images = list()
+        # batched_images = list()
 
         model.Encoder.eval()
         for iteration, batch in bar:
             # compressing image
-            image = batch.to(device)
+            image = batch[0].to(device)
+            compressed_path = batch[2][0]
 
-            # file_name = batch[2][0]
+            # Convert to tensor first
+            # compressed = _compress(image, 3)
 
             model.set_requires_grad(model.Encoder, False)
 
             # Encoder [-1, 1], Compressed: [0, 1]
-            compressed_image = model.compression_forward_eval(image).detach()
+            encoder_output = model.Encoder(image)
+            compressed_image = model.compress(prepare_for_compression_from_normalized_input(encoder_output.squeeze(0)))
+            
+            # save_img_version(image.detach().squeeze(0).cpu(), 'interm/encoder.png')
 
             # if iteration == 1:
             #     save_img(image[0].squeeze(0), 'in.png')
             #     save_img(compressed_image[0].squeeze(0), 'try.png')
 
-            compressed_images.append(compressed_image)
-            batched_images.append(image)
+            if opt.debug:
+                save_img(compressed_image, compressed_path)
+            # compressed_images.append(compressed_image)
+            # batched_images.append(image)
 
             # Save the compressed image to local disk
             # [-1., 1.] -> [0., 1.] -> *255
-            # save_img(compressed_image.detach().squeeze(0).cpu(), file_name)
 
             # Make sure not requires gradient
             assert(compressed_image.requires_grad == False)
@@ -128,8 +136,9 @@ if __name__ == '__main__':
                 iteration, data_len, epoch, num_epoch - 1
             ))
 
-        data_len = len(batched_images)
-        bar_ex = tqdm(enumerate(batched_images, 1), total=data_len)
+
+        data_len = len(training_data_loader)
+        bar_ex = tqdm(enumerate(training_data_loader, 1), total=data_len)
 
         t_discriminator_loss = 0
         t_generator_losses = 0
@@ -139,14 +148,18 @@ if __name__ == '__main__':
         # Updating generator and discriminator parameters here
         for iteration, batch in bar_ex:
             # try to expanding the image
-            image = batch.to(device)
+            image = batch[0].to(device)
             # assert(isinstance(batch[1], list) == False)
 
-            # compressed_image = batch[1].to(device)
-            compressed_image = compressed_images[iteration-1]
+            compressed_image = batch[1].to(device)
+            # compressed_image = compressed_images[iteration-1]
+
+            # save_img_version(image.detach().squeeze(0).cpu(), 'interm/input.png')
+            if opt.debug:
+                save_img_version(compressed_image.detach().squeeze(0).cpu(), 'interm/encoder.png')
 
             # Normalize compressed image from [0, 1] to [-1, 0]
-            compressed_image = 2 * compressed_image  - 1
+            # compressed_image = 2 * compressed_image  - 1
 
             assert(compressed_image is not None)
             assert(compressed_image.requires_grad == False)
@@ -184,9 +197,10 @@ if __name__ == '__main__':
             # assert(expanded.requires_grad)
             # assert(image.requires_grad)
 
-            # save_img(expanded.detach().squeeze(0).cpu(), 'interm/generated.png')
-            # save_img(image.detach().squeeze(0).cpu(), 'interm/inputed.png')
-            # save_img(compressed_image.detach().squeeze(0).cpu(), 'interm/compress.png')
+            if opt.debug:
+                save_img_version(expanded.detach().squeeze(0).cpu(), 'interm/generated.png')
+                save_img_version(image.detach().squeeze(0).cpu(), 'interm/inputed.png')
+                save_img_version(compressed_image.detach().squeeze(0).cpu(), 'interm/compress.png')
 
             generator_losses = gan_losses + decoder_losses
 
@@ -220,7 +234,7 @@ if __name__ == '__main__':
         model.Generator.eval()
         for iteration, batch in bar_enc:
             # Original image
-            image = batch.to(device)
+            image = batch[0].to(device)
 
             model.set_requires_grad(model.Generator, False)
             model.set_requires_grad(model.Encoder, True)
@@ -230,11 +244,18 @@ if __name__ == '__main__':
             x = model.Encoder(image)
             # x = model.compress(x)
             
+            if opt.debug:
+                save_img_version(x.detach().squeeze(0).cpu(), 'interm/encoder.png')
+
             # Normalize the output first
             # x = normalize(x)
             x = model.Generator(x)
 
             compression_losses = model.compression_loss(x, image)
+
+            if opt.debug:
+                save_img_version(image.detach().squeeze(0).cpu(), 'interm/inputed.png')
+                save_img_version(x.detach().squeeze(0).cpu(), 'interm/generated.png')
 
             # compression_losses = model.e_train(image)
 
@@ -284,20 +305,27 @@ if __name__ == '__main__':
         bar_test = tqdm(enumerate(testing_data_loader, 1), total=data_len_test)
         r_intermedient = random.randint(0, data_len_test)
         for iteration, batch in bar_test:
-            input = batch.to(device)
+            input = batch[0].to(device)
 
-            compressed_image = model.compression_forward_eval(input)
+            encoder_output = model.Encoder(input)
 
-            compressed_image_normalized = normalize(compressed_image)
+            # compress the image from encoder
+            compressed_image = model.compress(prepare_for_compression_from_normalized_input(encoder_output.squeeze(0)))
+            # then normalize the image
+            compressed_image_normalized = transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))(compressed_image)
+            # Add batch size
+            compressed_image_normalized = compressed_image_normalized.unsqueeze(0)
+
+            # compressed_image_normalized = normalize(compressed_image)
             expanded_image = model.Generator(compressed_image_normalized)
             
             if r_intermedient == (iteration-1):
                 if not os.path.exists("interm"):
                     os.mkdir("interm")
 
-                save_img(input.detach().squeeze(0).cpu(), 'interm/{}_input.png'.format(epoch))
-                save_img(compressed_image.detach().squeeze(0).cpu(), 'interm/{}_compressed.png'.format(epoch))
-                save_img(expanded_image.detach().squeeze(0).cpu(), 'interm/{}_expanded.png'.format(epoch))
+                save_img_version(input.detach().squeeze(0).cpu(), 'interm/{}_input.png'.format(epoch))
+                save_img_version(compressed_image.detach().squeeze(0).cpu(), 'interm/{}_compressed.png'.format(epoch))
+                save_img_version(expanded_image.detach().squeeze(0).cpu(), 'interm/{}_expanded.png'.format(epoch))
 
             input_img = tensor2img(input)
             compressed_img = tensor2img(compressed_image)

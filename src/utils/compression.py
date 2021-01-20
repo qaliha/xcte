@@ -1,6 +1,8 @@
 import torch
+from torchvision import transforms
+from src.utils.tensor import tensor2img
 
-def compress(tensor, bit):
+def _compress(tensor, bit):
     max_val = 2**bit - 1
     tensor = torch.clamp(tensor, 0.0, 1.0) * max_val
     tensor = torch.round(tensor)

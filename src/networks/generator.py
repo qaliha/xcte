@@ -50,7 +50,8 @@ class UpsampleConvLayer(nn.Module):
         super(UpsampleConvLayer, self).__init__()
         self.upsample = upsample
         if upsample:
-            self.upsample = nn.Upsample(scale_factor=upsample, mode='bicubic', align_corners=True)
+            # self.upsample = nn.Upsample(scale_factor=upsample, mode='bicubic', align_corners=True)
+            self.upsample = nn.Upsample(scale_factor=upsample, mode='nearest')
 
         reflection_padding = kernel_size // 2
         self.reflection_pad = nn.ReflectionPad2d(reflection_padding)
@@ -71,12 +72,12 @@ class ResidualBlock(nn.Module):
 
         # channel.ChannelNorm2D_wrap
         self.conv1 = ConvLayer(channels, channels, kernel_size=3, stride=1)
-        self.in1 = channel.ChannelNorm2D_wrap(channels, **norm_kwargs)
+        self.in1 = nn.BatchNorm2d(channels, **norm_kwargs)
 
         self.relu = nn.ReLU()
 
         self.conv2 = ConvLayer(channels, channels, kernel_size=3, stride=1)
-        self.in2 = channel.ChannelNorm2D_wrap(channels, **norm_kwargs)
+        self.in2 = nn.BatchNorm2d(channels, **norm_kwargs)
 
     def forward(self, x):
         identity = x
@@ -99,7 +100,8 @@ class Generator(nn.Module):
 
         norm_kwargs = dict(momentum=0.1, affine=True, track_running_stats=False)
 
-        self.upsample = nn.Upsample(scale_factor=2, mode='bicubic', align_corners=True)
+        # self.upsample = nn.Upsample(scale_factor=2, mode='bicubic', align_corners=True)
+        self.upsample = nn.Upsample(scale_factor=2, mode='nearest')
         self.unshuffle = PixelUnshuffle(2)
 
         self.conv_1 = ConvLayer(12, 64, kernel_size=3, stride=1)

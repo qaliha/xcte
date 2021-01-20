@@ -12,15 +12,15 @@ from PIL import Image
 def is_image_file(filename):
     return any(filename.endswith(extension) for extension in [".png", ".PNG", ".jpg", ".jpeg"])
 
-transform_list = [transforms.ToTensor(),
-    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
+# transform_list = [transforms.ToTensor(),
+#     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
 
-transform_list_compose = transforms.Compose(transform_list)
-def transform_and_normalize(img):
-    return transform_list_compose(img)
+# transform_list_compose = transforms.Compose(transform_list)
+# def transform_and_normalize(img):
+#     return transform_list_compose(img)
 
-def normalize(img):
-    return transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))(img)
+# def normalize(img):
+#     return transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))(img)
 
 class DatasetFromFolder(data.Dataset):
     def __init__(self, image_dir):
@@ -33,12 +33,20 @@ class DatasetFromFolder(data.Dataset):
             mkdir(self.b_path)
 
     def __getitem__(self, index):
-        self.current_index = index
-
         a = Image.open(join(self.a_path, self.image_filenames[index])).convert('RGB')
-        a = transform_and_normalize(a)
+        
+        a = transforms.ToTensor()(a)
+        a = transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))(a)
 
-        return a
+        b = list()
+        b_path = join(self.b_path, self.image_filenames[index])
+        
+        if exists(b_path):
+            b = Image.open(b_path).convert('RGB')
+            b = transforms.ToTensor()(b)
+            b = transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))(b)
+
+        return a, b, b_path
 
     def __len__(self):
         return len(self.image_filenames)
