@@ -113,7 +113,7 @@ if __name__ == '__main__':
             # compressed_images.append(compressed_image)
 
             # Save the compressed image to local disk
-            # save_img(compressed_image.detach().squeeze(0).cpu(), file_name)
+            save_img(compressed_image.detach().squeeze(0).cpu(), file_name)
 
             # Make sure not requires gradient
             assert(compressed_image.requires_grad == False)
