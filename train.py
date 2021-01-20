@@ -13,7 +13,7 @@ import numpy as np
 
 from src.model import Model
 from src.scheduler import get_scheduler, update_learning_rate
-from src.utils.tensor import normalize_input_from_normalied, prepare_for_compression_from_normalized_input, save_img, save_img_version
+from src.utils.tensor import normalize_input_from_normalied, prepare_for_compression_from_normalized_input, save_img, save_img_version, tensor2img
 from src.utils.metric import psnr, ssim
 
 # from loader import normalize
@@ -263,6 +263,9 @@ if __name__ == '__main__':
             compression_losses.backward()
             opt_encoder.step()
 
+            if opt.debug:
+                print(model.Encoder.connection_weights)
+
             t_compression_losses += compression_losses.item()
 
             # assert(list(model.Encoder.parameters())[0].grad is not None)
@@ -312,6 +315,12 @@ if __name__ == '__main__':
 
             # compress the image from encoder
             compressed_image = model.compress(prepare_for_compression_from_normalized_input(encoder_output.detach().squeeze(0).cpu()))
+            
+            # Output from compress is [0, 1], before wi normalize, we must normalize this tensor to [-1, 0] first,
+            # we can convert this to image and back to tensor
+            compressed_image = tensor2img(compressed_image)
+            compressed_image = transforms.ToTensor()(compressed_image)
+
             # then normalize the image
             compressed_image_normalized = transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))(compressed_image)
             # Add batch size and attach to device
@@ -325,11 +334,11 @@ if __name__ == '__main__':
                     os.mkdir("interm")
 
                 save_img_version(input.detach().squeeze(0).cpu(), 'interm/{}_input.png'.format(epoch))
-                save_img_version(compressed_image.detach().squeeze(0).cpu(), 'interm/{}_compressed.png'.format(epoch))
+                save_img_version(compressed_image_normalized.detach().squeeze(0).cpu(), 'interm/{}_compressed.png'.format(epoch))
                 save_img_version(expanded_image.detach().squeeze(0).cpu(), 'interm/{}_expanded.png'.format(epoch))
 
             input_img = normalize_input_from_normalied(input.detach().squeeze(0).cpu())
-            compressed_img = normalize_input_from_normalied(compressed_image.detach().squeeze(0).cpu())
+            compressed_img = normalize_input_from_normalied(compressed_image_normalized.detach().squeeze(0).cpu())
             expanded_img = normalize_input_from_normalied(expanded_image.detach().squeeze(0).cpu())
 
             _tmp_psnr_compressed = psnr(input_img, compressed_img)

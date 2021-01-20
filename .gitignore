@@ -92,3 +92,4 @@ dataset/*
 !dataset/.keep
 
 interm/*
+checkpoints/*

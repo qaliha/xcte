@@ -1,0 +1,1 @@
+python train.py --dataset expanding --name expanding --bit 3 --batch_size 1 --debug
