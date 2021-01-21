@@ -12,6 +12,7 @@ class FeatureExtractor(nn.Module):
         super(FeatureExtractor, self).__init__()
 
         self.activation = nn.ReLU()
+        self.tanh = nn.Tanh()
         # norm = channel.InstanceNorm2D_wrap
         norm = channel.ChannelNorm2D_wrap
 
@@ -60,7 +61,7 @@ class FeatureExtractor(nn.Module):
             self.post_pad,
             nn.Conv2d(512, 12, 3, stride=1),
             norm(12, **norm_kwargs),
-            self.activation,
+            self.tanh,
         )
 
         # Upsample
@@ -104,7 +105,6 @@ class Encoder(nn.Module):
         y = self.feature_net(x)
 
         out = F.normalize(y, p=2, dim=1)
-
         out = torch.lerp(out, inp, self.connection_weights)
         # out = self.connection_weights * inp + (1 - self.connection_weights) * out
 
