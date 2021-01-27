@@ -1,6 +1,7 @@
 import os
 import argparse
 import random
+from numpy.core.numeric import Inf
 
 from torchsummary import summary
 import torch
@@ -347,10 +348,10 @@ if __name__ == '__main__':
             _tmp_psnr_expanded = psnr(input_img, expanded_img)
             _tmp_ssim_expanded = ssim(expanded_img, input_img)
 
-            if _tmp_psnr_compressed:
+            if _tmp_psnr_compressed >= Inf:
                 count_inf += 1
 
-            if _tmp_psnr_expanded:
+            if _tmp_psnr_expanded >= Inf:
                 count_inf += 1
 
             psnr_lists.append(_tmp_psnr_expanded)

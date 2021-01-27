@@ -32,8 +32,9 @@ class Model(nn.Module):
 
         self.bit_size = bit
 
-        self.k_M = 0.075 * 2**(-5)
-        self.k_P = 1.
+        # self.k_M = 0.075 * 2**(-5)
+        self.k_M = 1.
+        self.k_P = 0.
         self.beta = 0.15
 
         self.loss_fn_alex = lpips.LPIPS(net='alex')
