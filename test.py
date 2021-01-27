@@ -20,10 +20,11 @@ print(opt)
 
 device = torch.device("cuda:0" if opt.cuda else "cpu")
 
-model_path = "checkpoints/{}/net_{}_epoch_{}.pth".format(opt.checkpoint, opt.name, opt.e)
+model_path = "checkpoints/{}/net_{}_epoch_{}.pth".format(
+    opt.checkpoint, opt.name, opt.e)
 image_dir = "checkpoints/{}/datasets/a/".format(opt.checkpoint)
 
-model = Model(3, opt)
+model = Model(5, opt)
 
 checkpoint = torch.load(model_path, map_location=device)
 model.load_state_dict(checkpoint['model_dict'])
@@ -44,14 +45,17 @@ for image_name in image_filenames:
 
     encoder_output = model.Encoder(input)
 
-    compressed_image = model.compress(prepare_for_compression_from_normalized_input(encoder_output.detach().squeeze(0).cpu()))
+    compressed_image = model.compress(prepare_for_compression_from_normalized_input(
+        encoder_output.detach().squeeze(0).cpu()))
     compressed_image = tensor2img(compressed_image)
     compressed_image = transforms.ToTensor()(compressed_image)
 
     # then normalize the image
-    compressed_image_normalized = transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))(compressed_image)
+    compressed_image_normalized = transforms.Normalize(
+        (0.5, 0.5, 0.5), (0.5, 0.5, 0.5))(compressed_image)
     # Add batch size and attach to device
-    compressed_image_normalized = compressed_image_normalized.unsqueeze(0).to(device)
+    compressed_image_normalized = compressed_image_normalized.unsqueeze(
+        0).to(device)
 
     # compressed_image_normalized = normalize(compressed_image)
     expanded_image = model.Generator(compressed_image_normalized)
@@ -59,5 +63,7 @@ for image_name in image_filenames:
     if not os.path.exists("checkpoints/{}/results".format(opt.checkpoint)):
         os.makedirs("checkpoints/{}/results".format(opt.checkpoint))
 
-    save_img_version(compressed_image_normalized.detach().squeeze(0).cpu(), "checkpoints/{}/results/{}_{}_compressed_{}".format(opt.checkpoint, opt.name, opt.e, image_name))
-    save_img_version(expanded_image.detach().squeeze(0).cpu(), "checkpoints/{}/results/{}_{}_expanded_{}".format(opt.checkpoint, opt.name, opt.e, image_name))
+    save_img_version(compressed_image_normalized.detach().squeeze(0).cpu(
+    ), "checkpoints/{}/results/{}_{}_compressed_{}".format(opt.checkpoint, opt.name, opt.e, image_name))
+    save_img_version(expanded_image.detach().squeeze(0).cpu(
+    ), "checkpoints/{}/results/{}_{}_expanded_{}".format(opt.checkpoint, opt.name, opt.e, image_name))
