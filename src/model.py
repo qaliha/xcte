@@ -14,6 +14,8 @@ from src.losses.gan_loss import GANLoss
 from src.losses.perceptual import VGGLoss
 
 # from loader import normalize
+
+
 class Model(nn.Module):
     def __init__(self, bit=3, opt=None):
         super(Model, self).__init__()
@@ -75,15 +77,15 @@ class Model(nn.Module):
     def distortion_loss(self, x_gen, x_real):
         # loss in [0,255] space but normalized by 255 to not be too big
         # - Delegate scaling to weighting
-        sq_err = self.squared_difference(x_gen*255., x_real*255.) # / 255.
+        sq_err = self.squared_difference(x_gen*255., x_real*255.)  # / 255.
         return torch.mean(sq_err)
 
-    def perceptual_loss(self, pred, target, normalize = True):
+    def perceptual_loss(self, pred, target, normalize=True):
         # [0., 1.] -> [-1., 1.]
         if normalize:
-            target = 2 * target  - 1
-            pred = 2 * pred  - 1
-        
+            target = 2 * target - 1
+            pred = 2 * pred - 1
+
         perp_loss = self.loss_fn_alex(target, pred)
         return torch.mean(perp_loss)
 
@@ -111,12 +113,13 @@ class Model(nn.Module):
         x_gen = (x_gen + 1.) / 2
 
         distortion_loss = self.distortion_loss(x_gen, x_real)
-        perceptual_loss = self.perceptual_loss(x_gen, x_real, normalize=True)
+        # perceptual_loss = self.perceptual_loss(x_gen, x_real, normalize=True)
 
         weighted_distortion = distortion_loss * self.k_M
-        weighted_perceptual = perceptual_loss * self.k_P
+        # weighted_perceptual = perceptual_loss * self.k_P
 
-        return weighted_distortion + weighted_perceptual
+        # return weighted_distortion + weighted_perceptual
+        return weighted_distortion
 
     # def gd_training(self, compressed, original):
     #     # Compressed = real_a, Original = real_b
@@ -145,7 +148,7 @@ class Model(nn.Module):
     # def e_train(self, original):
     #     x = self.Encoder(original)
     #     x = compress(x, self.bit_size)
-        
+
     #     # Normalize the output first
     #     x = normalize(x)
     #     x = self.Generator(x)
@@ -156,7 +159,7 @@ class Model(nn.Module):
     # def decompression_forward(self, x):
     #     self.Encoder.train()
     #     self.Generator.eval()
-    
+
     #     hdr = x
     #     # Compression the image using Encoder (with gradients)
     #     x = self.Encoder(x)
@@ -180,7 +183,7 @@ class Model(nn.Module):
     #     with torch.no_grad():
     #         x = self.Encoder(x)
     #         x = compress(x, self.bit_size)
-        
+
     #     expanded = self.Generator(x)
 
     #     # Update discriminator
