@@ -94,3 +94,5 @@ dataset/*
 interm/*
 checkpoints/*
 checkpoint/*
+
+show.py
