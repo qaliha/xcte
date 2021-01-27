@@ -93,3 +93,4 @@ dataset/*
 
 interm/*
 checkpoints/*
+checkpoint/*

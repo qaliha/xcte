@@ -37,6 +37,8 @@ if __name__ == '__main__':
     parser.add_argument('--nepoch', type=int, default=50, help='# of epoch')
     # parser.add_argument('--niter', type=int, default=100, help='# of iter at starting learning rate')
     # parser.add_argument('--niter_decay', type=int, default=100, help='# of iter to linearly decay learning rate to zero')
+    parser.add_argument('--commit', action='store_true',
+                        help='commit mode? checkpoint will replace and save all models configuration for retraining')
     parser.add_argument('--cuda', action='store_true', help='use cuda?')
     parser.add_argument('--debug', action='store_true', help='use debug mode?')
     parser.add_argument('--epochsave', type=int, default=50, help='test')
@@ -419,12 +421,28 @@ if __name__ == '__main__':
             if not os.path.exists(os.path.join("checkpoint", opt.dataset)):
                 os.mkdir(os.path.join("checkpoint", opt.dataset))
 
+            model_out_old_path = "checkpoint/{}/net_{}_epoch_{}.pth".format(
+                opt.dataset, opt.name, epoch - opt.epochsave)
+
+            if opt.commit:
+                if os.path.exists(model_out_old_path):
+                    os.remove(model_out_old_path)
+
             model_out_path = "checkpoint/{}/net_{}_epoch_{}.pth".format(
                 opt.dataset, opt.name, epoch)
 
             state = {
                 'epoch': epoch + 1,
-                'model_dict': model.state_dict()
+                # Model
+                'model_dict': model.state_dict(),
+                # Optimizer
+                'optimizer_e': opt_encoder.state_dict() if opt.commit else None,
+                'optimizer_g': opt_generator.state_dict() if opt.commit else None,
+                'optimizer_d': opt_discriminator.state_dict() if opt.commit else None,
+                # Scheduler
+                'scheduler_e': sch_encoder.state_dict() if opt.commit else None,
+                'scheduler_g': sch_generator.state_dict() if opt.commit else None,
+                'scheduler_d': sch_discriminator.state_dict() if opt.commit else None
             }
 
             torch.save(state, model_out_path)
