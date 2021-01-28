@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from torch.nn import init
+from functools import partial
 
 import lpips
 
@@ -9,10 +10,11 @@ from src.utils.compression import _compress
 from src.networks.encoder import Encoder
 from src.networks.generator import Generator
 from src.networks.discriminator import Discriminator
+from src.networks.discriminator_hf import DiscriminatorHF
 
 from src.losses.gan_loss import GANLoss
 from src.losses.perceptual import VGGLoss
-
+from src.losses.hf_losses import gan_loss
 # from loader import normalize
 
 
@@ -22,9 +24,11 @@ class Model(nn.Module):
 
         self.Encoder = Encoder(cuda=opt.cuda)
         self.Generator = Generator()
-        self.Discriminator = Discriminator()
+        # self.Discriminator = Discriminator()
+        self.Discriminator = DiscriminatorHF()
 
         self.gan_loss = GANLoss(cuda=opt.cuda)
+        self.gan_loss_hf = partial(gan_loss, 'non_saturating')
         self.squared_difference = torch.nn.MSELoss(reduction='none')
         self.perceptual_loss = VGGLoss()
 
