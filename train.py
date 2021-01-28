@@ -25,6 +25,30 @@ import warnings
 
 warnings.filterwarnings("ignore")
 
+
+def load_checkpoint(model, opt_e, opt_g, opt_d, sch_e, sch_g, ech_d, filename='net.pth'):
+    start_epoch = 0
+    if os.path.isfile(filename):
+        print("=> Loading checkpoint '{}'".format(filename))
+        state = torch.load(filename)
+
+        start_epoch = state['epoch']
+        model.load_state_dict(state['model_dict'])
+        # optimizer
+        opt_e.load_state_dict(state['optimizer_e'])
+        opt_g.load_state_dict(state['optimizer_g'])
+        opt_d.load_state_dict(state['optimizer_d'])
+        # scheduler
+        sch_e.load_state_dict(state['scheduler_e'])
+        sch_g.load_state_dict(state['scheduler_g'])
+        ech_d.load_state_dict(state['scheduler_d'])
+    else:
+        print("=> No checkpoint found at '{}'".format(filename))
+        exit()
+
+    return start_epoch, model, opt_e, opt_g, opt_d, sch_e, sch_g, ech_d
+
+
 if __name__ == '__main__':
     # Training settings
     parser = argparse.ArgumentParser(description='Compressing')
@@ -99,7 +123,23 @@ if __name__ == '__main__':
 
     start_epoch = opt.epoch_count
     if start_epoch > 1:
-        pass
+        start_epoch, model, opt_encoder, opt_generator, opt_discriminator, sch_encoder, sch_generator, sch_discriminator = load_checkpoint(
+            model, opt_encoder, opt_generator, opt_discriminator, sch_encoder, sch_generator, sch_discriminator, "checkpoint/{}/net_{}_epoch_{}.pth".format(opt.dataset, opt.name, start_epoch-1))
+
+        for state in opt_encoder.state.values():
+            for k, v in state.items():
+                if isinstance(v, torch.Tensor):
+                    state[k] = v.to(device)
+
+        for state in opt_generator.state.values():
+            for k, v in state.items():
+                if isinstance(v, torch.Tensor):
+                    state[k] = v.to(device)
+
+        for state in opt_discriminator.state.values():
+            for k, v in state.items():
+                if isinstance(v, torch.Tensor):
+                    state[k] = v.to(device)
 
     parameters_encoder_bt = list(model.Encoder.parameters())[0].clone()
     parameters_generator_bt = list(model.Generator.parameters())[0].clone()

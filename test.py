@@ -11,6 +11,7 @@ from src.utils.image import load_img
 
 parser = argparse.ArgumentParser(description='testing framework')
 parser.add_argument('--checkpoint', required=True, help='checkpoint folder')
+parser.add_argument('--bit', type=int, required=True, help='bit len')
 parser.add_argument('--name', required=True, help='model name')
 parser.add_argument('--e', type=int, default=200, help='model epoch')
 parser.add_argument('--cuda', action='store_true', help='use cuda')
@@ -24,7 +25,7 @@ model_path = "checkpoints/{}/net_{}_epoch_{}.pth".format(
     opt.checkpoint, opt.name, opt.e)
 image_dir = "checkpoints/{}/datasets/a/".format(opt.checkpoint)
 
-model = Model(5, opt)
+model = Model(opt.bit, opt)
 
 checkpoint = torch.load(model_path, map_location=device)
 model.load_state_dict(checkpoint['model_dict'])
