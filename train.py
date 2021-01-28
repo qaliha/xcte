@@ -141,10 +141,10 @@ if __name__ == '__main__':
                 if isinstance(v, torch.Tensor):
                     state[k] = v.to(device)
 
-    parameters_encoder_bt = list(model.Encoder.parameters())[0].clone()
-    parameters_generator_bt = list(model.Generator.parameters())[0].clone()
-    parameters_discriminator_bt = list(
-        model.Discriminator.parameters())[0].clone()
+    # parameters_encoder_bt = list(model.Encoder.parameters())[0].clone()
+    # parameters_generator_bt = list(model.Generator.parameters())[0].clone()
+    # parameters_discriminator_bt = list(
+    #     model.Discriminator.parameters())[0].clone()
 
     num_epoch = opt.nepoch + 1
     for epoch in range(start_epoch, num_epoch):
@@ -228,6 +228,7 @@ if __name__ == '__main__':
             expanded = model.Generator(compressed_image)
 
             model.set_requires_grad(model.Discriminator, True)
+            opt_discriminator.zero_grad()
 
             D_in = torch.cat((image, expanded.detach()), dim=1)
 
@@ -237,8 +238,6 @@ if __name__ == '__main__':
 
             D_real, D_gen = torch.chunk(D_out, 2, dim=0)
             D_real_logits, D_gen_logits = torch.chunk(D_out_logits, 2, dim=0)
-
-            opt_discriminator.zero_grad()
 
             discriminator_loss = model.gan_loss_hf(
                 D_real, D_gen, D_real_logits, D_gen_logits, 'discriminator_loss')
@@ -380,17 +379,17 @@ if __name__ == '__main__':
         update_learning_rate(sch_generator, opt_generator)
         update_learning_rate(sch_discriminator, opt_discriminator)
 
-        parameters_generator_af = list(model.Generator.parameters())[0].clone()
-        parameters_discriminator_af = list(
-            model.Discriminator.parameters())[0].clone()
-        parameters_encoder_af = list(model.Encoder.parameters())[0].clone()
+        # parameters_generator_af = list(model.Generator.parameters())[0].clone()
+        # parameters_discriminator_af = list(
+        #     model.Discriminator.parameters())[0].clone()
+        # parameters_encoder_af = list(model.Encoder.parameters())[0].clone()
 
-        assert(torch.all(torch.eq(parameters_generator_bt,
-                                  parameters_generator_af)) == False)
-        assert(torch.all(torch.eq(parameters_discriminator_bt,
-                                  parameters_discriminator_af)) == False)
-        assert(torch.all(torch.eq(parameters_encoder_bt,
-                                  parameters_encoder_af)) == False)
+        # assert(torch.all(torch.eq(parameters_generator_bt,
+        #                           parameters_generator_af)) == False)
+        # assert(torch.all(torch.eq(parameters_discriminator_bt,
+        #                           parameters_discriminator_af)) == False)
+        # assert(torch.all(torch.eq(parameters_encoder_bt,
+        #                           parameters_encoder_af)) == False)
 
         # Check custom parameter
         # print(model.Encoder.connection_weights)

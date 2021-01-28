@@ -3,7 +3,7 @@ import torch
 
 from src.networks.encoder import Encoder
 from src.networks.generator import Generator
-from src.utils.compression import compress
+from src.utils.compression import _compress
 from loader import normalize
 
 E = Encoder()
@@ -22,7 +22,7 @@ for name, param in E.named_parameters():
 input = torch.randn((2, 3, 256, 256), requires_grad=True)
 
 image = E(input)
-# image = compress(image, 3)
+# image = _compress(image, 3)
 
 # Normalize the output first
 image = normalize(image)
