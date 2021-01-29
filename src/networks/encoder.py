@@ -14,7 +14,7 @@ class FeatureExtractor(nn.Module):
 
         self.activation = nn.PReLU()
         # self.tanh = nn.Tanh()
-        norm = channel.InstanceNorm2D_wrap
+        norm = channel.ChannelNorm2D_wrap
         # norm = channel.ChannelNorm2D_wrap
 
         cnn_kwargs = dict(stride=2, padding=0, padding_mode='reflect')
