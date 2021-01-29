@@ -83,12 +83,12 @@ class ResidualBlock(nn.Module):
 
         # channel.ChannelNorm2D_wrap
         self.conv1 = ConvLayer(channels, channels, kernel_size=3, stride=1)
-        self.in1 = nn.BatchNorm2d(channels, **norm_kwargs)
+        self.in1 = channel.InstanceNorm2D_wrap(channels, **norm_kwargs)
 
         self.relu = nn.ReLU()
 
         self.conv2 = ConvLayer(channels, channels, kernel_size=3, stride=1)
-        self.in2 = nn.BatchNorm2d(channels, **norm_kwargs)
+        self.in2 = channel.InstanceNorm2D_wrap(channels, **norm_kwargs)
 
     def forward(self, x):
         identity = x
@@ -136,11 +136,11 @@ class Generator(nn.Module):
         self.res9 = ResidualBlock(128)
 
         self.deconv_4 = UpsampleConvLayer(128, 128, kernel_size=3, stride=1)
-        self.in4_d = nn.BatchNorm2d(128, **norm_kwargs)
+        self.in4_d = channel.InstanceNorm2D_wrap(128, **norm_kwargs)
 
         self.deconv_3 = UpsampleConvLayer(
             128, 64, kernel_size=3, stride=1, upsample=2)
-        self.in3_d = nn.BatchNorm2d(64, **norm_kwargs)
+        self.in3_d = channel.InstanceNorm2D_wrap(64, **norm_kwargs)
 
         # self.deconv_2 = UpsampleConvLayer(64, 32, kernel_size=3, stride=1, upsample=2)
         # self.in2_d = channel.ChannelNorm2D_wrap(32, **norm_kwargs)
