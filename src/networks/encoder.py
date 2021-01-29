@@ -21,22 +21,29 @@ class FeatureExtractor(nn.Module):
         norm_kwargs = dict(momentum=0.1, affine=True,
                            track_running_stats=False)
 
-        self.pre_pad = nn.ReflectionPad2d(3)
-        self.asymmetric_pad = nn.ReflectionPad2d(
-            (0, 1, 1, 0))  # Slower than tensorflow?
-        self.post_pad = nn.ReflectionPad2d(1)
+        # self.pre_pad = nn.ReflectionPad2d(3)
+        # self.asymmetric_pad = nn.ReflectionPad2d(
+        #     (0, 1, 1, 0))  # Slower than tensorflow?
+        # self.post_pad = nn.ReflectionPad2d(1)
 
         # (256,256) -> (256,256), with implicit padding
         self.conv_block1 = nn.Sequential(
-            self.pre_pad,
+            nn.ReflectionPad2d(3),
             nn.Conv2d(3, 64, kernel_size=(7, 7), stride=1),
             self.activation,
         )
 
         # (256,256) -> (128,128)
         self.conv_block2 = nn.Sequential(
-            self.asymmetric_pad,
+            nn.ReflectionPad2d((0, 1, 1, 0)),
             nn.Conv2d(64, 128, 3, **cnn_kwargs),
+            norm(128, **norm_kwargs),
+            self.activation,
+        )
+
+        self.conv_block3 = nn.Sequential(
+            nn.ReflectionPad2d(1),
+            nn.Conv2d(128, 128, 3, stride=1),
             norm(128, **norm_kwargs),
             self.activation,
         )
@@ -61,7 +68,7 @@ class FeatureExtractor(nn.Module):
         # Feature maps have dimension C x W/16 x H/16
         # (32,32) -> (32,32)
         self.conv_block_out = nn.Sequential(
-            self.post_pad,
+            nn.ReflectionPad2d(1),
             nn.Conv2d(128, 12, 3, stride=1),
             norm(12, **norm_kwargs),
             self.activation,
@@ -78,7 +85,7 @@ class FeatureExtractor(nn.Module):
     def forward(self, x):
         y = self.conv_block1(x)
         y = self.conv_block2(y)
-        # y = self.conv_block3(y)
+        y = self.conv_block3(y)
         # y = self.conv_block4(y)
         y = self.conv_block_out(y)
 

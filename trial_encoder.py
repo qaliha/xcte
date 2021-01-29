@@ -1,10 +1,14 @@
+# from loader import normalize
+# from src.utils.compression import _compress
+from src.networks.generator import Generator
 import torch.optim as optim
 import torch
 
-from src.networks.encoder import Encoder
-from src.networks.generator import Generator
-from src.utils.compression import _compress
-from loader import normalize
+from src.networks.encoder import Encoder, trial
+
+trial()
+exit()
+
 
 E = Encoder()
 G = Generator()

@@ -114,7 +114,7 @@ class Generator(nn.Module):
                            track_running_stats=False)
 
         # self.upsample = nn.Upsample(scale_factor=2, mode='bicubic', align_corners=True)
-        self.upsample = nn.Upsample(scale_factor=2, mode='nearest')
+        # self.upsample = nn.Upsample(scale_factor=2, mode='nearest')
         self.unshuffle = PixelUnshuffle(2)
 
         self.conv_1 = ConvLayer(12, 128, kernel_size=3, stride=1)
@@ -138,22 +138,23 @@ class Generator(nn.Module):
         self.deconv_4 = UpsampleConvLayer(128, 128, kernel_size=3, stride=1)
         self.in4_d = channel.ChannelNorm2D_wrap(128, **norm_kwargs)
 
-        # self.deconv_3 = UpsampleConvLayer(128, 64, kernel_size=3, stride=1, upsample=2)
-        # self.in3_d = channel.ChannelNorm2D_wrap(64, **norm_kwargs)
+        self.deconv_3 = UpsampleConvLayer(
+            128, 64, kernel_size=3, stride=1, upsample=2)
+        self.in3_d = channel.ChannelNorm2D_wrap(64, **norm_kwargs)
 
         # self.deconv_2 = UpsampleConvLayer(64, 32, kernel_size=3, stride=1, upsample=2)
         # self.in2_d = channel.ChannelNorm2D_wrap(32, **norm_kwargs)
 
-        self.deconv_1 = UpsampleConvLayer(128, 3, kernel_size=3, stride=1)
+        self.deconv_1 = UpsampleConvLayer(64, 3, kernel_size=3, stride=1)
         # self.in1_d = channel.ChannelNorm2D_wrap(3, **norm_kwargs)
 
     def forward(self, x):
         # Recovery from encoder
-        # (3, 512, 512) -> (12, 256, 256)
+        # (3, 256, 268) -> (12, 128, 128)
         y = self.unshuffle(x)
 
         # (3, 256, 256) -> (3, 512, 512)
-        y = self.upsample(y)
+        # y = self.upsample(y)
 
         y = self.leakyRelu(self.conv_1(y))
         # y = self.relu(self.in2_e(self.conv_2(y)))
@@ -175,7 +176,7 @@ class Generator(nn.Module):
         res = res + residual
         y = self.leakyRelu(res)
 
-        # y = self.relu(self.in3_d(self.deconv_3(y)))
+        y = self.relu(self.in3_d(self.deconv_3(y)))
         # y = self.relu(self.in2_d(self.deconv_2(y)))
         out = self.tanh(self.deconv_1(y))
         # y = self.conv_1(y)

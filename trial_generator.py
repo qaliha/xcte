@@ -4,8 +4,8 @@ import torch
 from src.networks.discriminator import Discriminator
 from src.networks.generator import Generator
 from src.model import Model
-from src.utils.compression import compress
-from loader import normalize
+from src.utils.compression import _compress
+# from loader import normalize
 
 import argparse
 
