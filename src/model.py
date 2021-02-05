@@ -43,7 +43,7 @@ class Model(nn.Module):
         self.k_P = 0.
         self.beta = 0.15
 
-        self.loss_fn_alex = lpips.LPIPS(net='vgg16')
+        self.loss_fn_alex = lpips.LPIPS(net='vgg')
 
     def __initialize_weights(self, net):
         def init_func(m):
