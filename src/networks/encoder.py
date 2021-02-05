@@ -99,13 +99,13 @@ class FeatureExtractor(nn.Module):
 
 
 class Encoder(nn.Module):
-    def __init__(self, cuda=False):
+    def __init__(self, cuda=False, alpha=.8):
         super(Encoder, self).__init__()
 
         self.feature_net = FeatureExtractor()
 
         # self.connection_weights = nn.Parameter(torch.empty(3, 256, 256).uniform_(0, 1))
-        self.connection_weights = nn.Parameter(torch.tensor(.8))
+        self.connection_weights = nn.Parameter(torch.tensor(alpha))
         # if cuda:
         #     self.connection_weights = self.connection_weights.to(torch.device("cuda:0"))
         # self.connection_weights.requires_grad_(True)

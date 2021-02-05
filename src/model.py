@@ -22,7 +22,7 @@ class Model(nn.Module):
     def __init__(self, bit=3, opt=None):
         super(Model, self).__init__()
 
-        self.Encoder = Encoder(cuda=opt.cuda)
+        self.Encoder = Encoder(cuda=opt.cuda, alpha=opt.a)
         self.Generator = Generator()
         # self.Discriminator = Discriminator()
         self.Discriminator = DiscriminatorHF()
@@ -43,7 +43,7 @@ class Model(nn.Module):
         self.k_P = 0.
         self.beta = 0.15
 
-        self.loss_fn_alex = lpips.LPIPS(net='alex')
+        self.loss_fn_alex = lpips.LPIPS(net='vgg16')
 
     def __initialize_weights(self, net):
         def init_func(m):

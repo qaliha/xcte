@@ -71,6 +71,8 @@ if __name__ == '__main__':
     parser.add_argument('--test_batch_size', type=int,
                         default=1, help='testing batch size')
 
+    parser.add_argument('--a', type=float, default=.8,
+                        help='initial alpha gate for encoder')
     parser.add_argument('--lr', type=float, default=0.0002,
                         help='initial learning rate for adam')
     parser.add_argument('--lr_decay_iters', type=int, default=10,
@@ -223,8 +225,6 @@ if __name__ == '__main__':
             assert(compressed_image is not None)
             assert(compressed_image.requires_grad == False)
 
-            model.set_requires_grad(model.Generator, True)
-
             expanded = model.Generator(compressed_image)
 
             model.set_requires_grad(model.Discriminator, True)
@@ -256,6 +256,8 @@ if __name__ == '__main__':
             discriminator_loss.backward()
             opt_discriminator.step()
 
+            model.set_requires_grad(model.Generator, True)
+
             opt_generator.zero_grad()
 
             model.set_requires_grad(model.Discriminator, False)
@@ -276,7 +278,7 @@ if __name__ == '__main__':
             perceptual_losses = model.perceptual_loss(
                 expanded, image, normalize=False)
             generator_losses = .15 * gan_losses + \
-                (decoder_losses + perceptual_losses)
+                (decoder_losses + .25 * perceptual_losses)
 
             generator_losses.backward()
             opt_generator.step()
@@ -316,9 +318,11 @@ if __name__ == '__main__':
             t_discriminator_loss += discriminator_loss.item()
             t_generator_losses += generator_losses.item()
 
-            # assert(list(model.Encoder.parameters())[0].grad is None)
-            # assert(list(model.Generator.parameters())[0].grad is not None)
-            # assert(list(model.Discriminator.parameters())[0].grad is not None)
+            if opt.debug:
+                assert(list(model.Encoder.parameters())[0].grad is None)
+                assert(list(model.Generator.parameters())[0].grad is not None)
+                assert(list(model.Discriminator.parameters())
+                       [0].grad is not None)
 
             bar_ex.set_description(desc='itr: %d/%d [%3d/%3d] [D_Loss: %.6f] [G_Loss: %.6f] Training Generator' % (
                 iteration, data_len, epoch, num_epoch - 1,
