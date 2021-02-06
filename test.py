@@ -14,7 +14,7 @@ parser.add_argument('--checkpoint', required=True, help='checkpoint folder')
 parser.add_argument('--bit', type=int, required=True, help='bit len')
 parser.add_argument('--name', required=True, help='model name')
 parser.add_argument('--e', type=int, default=200, help='model epoch')
-parser.add_argument('--a', type=float, default=.8,
+parser.add_argument('--a', type=float, default=.1,
                     help='initial alpha gate for encoder')
 parser.add_argument('--cuda', action='store_true', help='use cuda')
 
@@ -31,6 +31,8 @@ model = Model(opt.bit, opt)
 
 checkpoint = torch.load(model_path, map_location=device)
 model.load_state_dict(checkpoint['model_dict'])
+
+print(model.Encoder.connection_weights)
 
 image_filenames = [x for x in os.listdir(image_dir) if is_image_file(x)]
 
