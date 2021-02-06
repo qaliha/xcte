@@ -63,6 +63,8 @@ if __name__ == '__main__':
     # parser.add_argument('--niter_decay', type=int, default=100, help='# of iter to linearly decay learning rate to zero')
     parser.add_argument('--commit', action='store_true',
                         help='commit mode? checkpoint will replace and save all models configuration for retraining')
+    parser.add_argument('--warm', action='store_true',
+                        help='warming up the training by first train encoder to atleast generate "similiar" image to input')
     parser.add_argument('--cuda', action='store_true', help='use cuda?')
     parser.add_argument('--debug', action='store_true', help='use debug mode?')
     parser.add_argument('--epochsave', type=int, default=50, help='test')
@@ -150,6 +152,44 @@ if __name__ == '__main__':
 
     num_epoch = opt.nepoch + 1
     for epoch in range(start_epoch, num_epoch):
+        # warming the parameters of encoder if --warm is provided
+        if opt.warm and epoch == 1:
+            data_len = len(training_data_loader)
+            bar_enc = tqdm(enumerate(training_data_loader, 1), total=data_len)
+
+            model.Encoder.train()
+            for iteration, batch in bar_enc:
+                # Original image
+                image = batch[0].to(device)
+
+                model.set_requires_grad(model.Encoder, True)
+
+                opt_encoder.zero_grad()
+
+                x = model.Encoder(image)
+
+                if opt.debug:
+                    save_img_version(x.detach().squeeze(
+                        0).cpu(), 'interm/warm.png')
+
+                # Normalize the output first
+                # x = normalize(x)
+                x = model.Generator(x)
+
+                compression_losses = model.compression_loss(x, image) * 0.5
+
+                compression_losses.backward()
+                opt_encoder.step()
+
+                if opt.debug:
+                    print(model.Encoder.connection_weights)
+
+                # assert(list(model.Encoder.parameters())[0].grad is not None)
+
+                bar_enc.set_description(desc='itr: %d/%d [%3d/%3d] Warming Encoder' % (
+                    iteration, data_len, epoch, num_epoch - 1
+                ))
+
         # starting the epoch
 
         data_len = len(compression_data_loader)
@@ -319,7 +359,7 @@ if __name__ == '__main__':
             t_generator_losses += generator_losses.item()
 
             if opt.debug:
-                assert(list(model.Encoder.parameters())[0].grad is None)
+                assert(list(model.Encoder.parameters())[0].grad is not None)
                 assert(list(model.Generator.parameters())[0].grad is not None)
                 assert(list(model.Discriminator.parameters())
                        [0].grad is not None)
