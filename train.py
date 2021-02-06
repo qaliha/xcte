@@ -159,8 +159,8 @@ if __name__ == '__main__':
 
             model.Encoder.train()
             for iteration, batch in bar_enc:
-                # Original image
-                image = batch[0].to(device)
+                # Train with random cropped image
+                image = batch[0+3].to(device)
 
                 # model.set_requires_grad(model.Encoder, True)
 
@@ -201,7 +201,7 @@ if __name__ == '__main__':
 
         model.Encoder.eval()
         for iteration, batch in bar:
-            # compressing image
+            # compress original image (not cropped to get full image)
             image = batch[0].to(device)
             compressed_path = batch[2][0]
 
@@ -249,10 +249,10 @@ if __name__ == '__main__':
         # Updating generator and discriminator parameters here
         for iteration, batch in bar_ex:
             # try to expanding the image
-            image = batch[0].to(device)
+            image = batch[0+3].to(device)
             # assert(isinstance(batch[1], list) == False)
 
-            compressed_image = batch[1].to(device)
+            compressed_image = batch[1+3].to(device)
             # compressed_image = compressed_images[iteration-1]
 
             # save_img_version(image.detach().squeeze(0).cpu(), 'interm/input.png')
@@ -386,8 +386,8 @@ if __name__ == '__main__':
         model.Encoder.train()
         model.Generator.eval()
         for iteration, batch in bar_enc:
-            # Original image
-            image = batch[0].to(device)
+            # Get random cropped image
+            image = batch[0+3].to(device)
 
             # model.set_requires_grad(model.Generator, False)
             # model.set_requires_grad(model.Encoder, True)
@@ -468,7 +468,7 @@ if __name__ == '__main__':
         bar_test = tqdm(enumerate(testing_data_loader, 1), total=data_len_test)
         r_intermedient = random.randint(0, data_len_test)
         for iteration, batch in bar_test:
-            input = batch[0].to(device)
+            input = batch[0+3].to(device)
 
             encoder_output = model.Encoder(input)
 
