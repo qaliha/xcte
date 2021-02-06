@@ -30,7 +30,7 @@ class Model(nn.Module):
         self.gan_loss = GANLoss(cuda=opt.cuda)
         self.gan_loss_hf = partial(gan_loss, 'non_saturating')
         self.squared_difference = torch.nn.MSELoss(reduction='none')
-        self.perceptual_loss = VGGLoss()
+        # self.perceptual_loss = VGGLoss()
 
         self.__initialize_weights(self.Encoder)
         self.__initialize_weights(self.Generator)
@@ -43,7 +43,7 @@ class Model(nn.Module):
         self.k_P = 0.
         self.beta = 0.15
 
-        self.loss_fn_alex = lpips.LPIPS(net='vgg')
+        # self.loss_fn_alex = lpips.LPIPS(net='vgg')
 
     def __initialize_weights(self, net):
         def init_func(m):
@@ -84,14 +84,14 @@ class Model(nn.Module):
         sq_err = self.squared_difference(x_gen*255., x_real*255.)  # / 255.
         return torch.mean(sq_err)
 
-    def perceptual_loss(self, pred, target, normalize=True):
-        # [0., 1.] -> [-1., 1.]
-        if normalize:
-            target = 2 * target - 1
-            pred = 2 * pred - 1
+    # def perceptual_loss(self, pred, target, normalize=True):
+    #     # [0., 1.] -> [-1., 1.]
+    #     if normalize:
+    #         target = 2 * target - 1
+    #         pred = 2 * pred - 1
 
-        perp_loss = self.loss_fn_alex(target, pred)
-        return torch.mean(perp_loss)
+    #     perp_loss = self.loss_fn_alex(target, pred)
+    #     return torch.mean(perp_loss)
 
     def restruction_loss(self, reconstruction, input_image):
         x_real = input_image

@@ -176,7 +176,7 @@ if __name__ == '__main__':
                 # x = normalize(x)
                 x = model.Generator(x)
 
-                compression_losses = model.compression_loss(x, image) * 0.5
+                compression_losses = model.compression_loss(x, image)
 
                 compression_losses.backward()
                 opt_encoder.step()
@@ -315,10 +315,8 @@ if __name__ == '__main__':
                 D_real, D_gen, D_real_logits, D_gen_logits, 'generator_loss')
 
             decoder_losses = model.restruction_loss(expanded, image)
-            perceptual_losses = model.perceptual_loss(
-                expanded, image, normalize=False)
-            generator_losses = .15 * gan_losses + \
-                (decoder_losses + .25 * perceptual_losses)
+            # perceptual_losses = model.perceptual_loss(expanded, image, normalize=False)
+            generator_losses = .15 * gan_losses + decoder_losses
 
             generator_losses.backward()
             opt_generator.step()
@@ -397,7 +395,7 @@ if __name__ == '__main__':
             # x = normalize(x)
             x = model.Generator(x)
 
-            compression_losses = model.compression_loss(x, image) * 0.5
+            compression_losses = model.compression_loss(x, image)
 
             if opt.debug:
                 save_img_version(image.detach().squeeze(
