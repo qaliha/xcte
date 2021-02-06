@@ -162,7 +162,7 @@ if __name__ == '__main__':
                 # Original image
                 image = batch[0].to(device)
 
-                model.set_requires_grad(model.Encoder, True)
+                # model.set_requires_grad(model.Encoder, True)
 
                 opt_encoder.zero_grad()
 
@@ -208,7 +208,7 @@ if __name__ == '__main__':
             # Convert to tensor first
             # compressed = _compress(image, 3)
 
-            model.set_requires_grad(model.Encoder, False)
+            # model.set_requires_grad(model.Encoder, False)
 
             # Encoder [-1, 1], Compressed: [0, 1]
             encoder_output = model.Encoder(image)
@@ -231,7 +231,8 @@ if __name__ == '__main__':
             # [-1., 1.] -> [0., 1.] -> *255
 
             # Make sure not requires gradient
-            assert(compressed_image.requires_grad == False)
+            if opt.debug:
+                assert(compressed_image.requires_grad == False)
 
             bar.set_description(desc='itr: %d/%d [%3d/%3d] Compressing Image' % (
                 iteration, data_len, epoch, num_epoch - 1
@@ -262,12 +263,15 @@ if __name__ == '__main__':
             # Normalize compressed image from [0, 1] to [-1, 0]
             # compressed_image = 2 * compressed_image  - 1
 
-            assert(compressed_image is not None)
-            assert(compressed_image.requires_grad == False)
+            if opt.debug:
+                assert(compressed_image is not None)
+                assert(compressed_image.requires_grad == False)
+
+            # Train discriminator
+            # model.set_requires_grad(model.Discriminator, True)
 
             expanded = model.Generator(compressed_image)
 
-            model.set_requires_grad(model.Discriminator, True)
             opt_discriminator.zero_grad()
 
             D_in = torch.cat((image, expanded.detach()), dim=1)
@@ -281,6 +285,9 @@ if __name__ == '__main__':
 
             discriminator_loss = model.gan_loss_hf(
                 D_real, D_gen, D_real_logits, D_gen_logits, 'discriminator_loss')
+
+            if opt.debug:
+                assert(discriminator_loss.requires_grad == True)
 
             # # Update discriminator
             # fake_ab = model.Discriminator(
@@ -296,11 +303,10 @@ if __name__ == '__main__':
             discriminator_loss.backward()
             opt_discriminator.step()
 
-            model.set_requires_grad(model.Generator, True)
+            # model.set_requires_grad(model.Generator, True)
+            # model.set_requires_grad(model.Discriminator, False)
 
             opt_generator.zero_grad()
-
-            model.set_requires_grad(model.Discriminator, False)
 
             D_in = torch.cat((image, expanded), dim=1)
 
@@ -317,6 +323,10 @@ if __name__ == '__main__':
             decoder_losses = model.restruction_loss(expanded, image)
             # perceptual_losses = model.perceptual_loss(expanded, image, normalize=False)
             generator_losses = .15 * gan_losses + decoder_losses
+
+            if opt.debug:
+                assert(gan_losses.requires_grad == True)
+                assert(decoder_losses.requires_grad == True)
 
             generator_losses.backward()
             opt_generator.step()
@@ -379,8 +389,8 @@ if __name__ == '__main__':
             # Original image
             image = batch[0].to(device)
 
-            model.set_requires_grad(model.Generator, False)
-            model.set_requires_grad(model.Encoder, True)
+            # model.set_requires_grad(model.Generator, False)
+            # model.set_requires_grad(model.Encoder, True)
 
             opt_encoder.zero_grad()
 
@@ -449,8 +459,8 @@ if __name__ == '__main__':
         model.Encoder.eval()
         model.Generator.eval()
 
-        model.set_requires_grad(model.Encoder, False)
-        model.set_requires_grad(model.Generator, False)
+        # model.set_requires_grad(model.Encoder, False)
+        # model.set_requires_grad(model.Generator, False)
 
         count_inf = 0
 
