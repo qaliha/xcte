@@ -14,6 +14,8 @@ parser.add_argument('--checkpoint', required=True, help='checkpoint folder')
 parser.add_argument('--bit', type=int, required=True, help='bit len')
 parser.add_argument('--name', required=True, help='model name')
 parser.add_argument('--e', type=int, default=200, help='model epoch')
+parser.add_argument('--a', type=float, default=.8,
+                    help='initial alpha gate for encoder')
 parser.add_argument('--cuda', action='store_true', help='use cuda')
 
 opt = parser.parse_args()

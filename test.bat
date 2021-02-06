@@ -1,1 +1,1 @@
-python test.py --checkpoint companding_v1 --name companding_GANs --e 16 --bit 3
+python test.py --checkpoint companding_v1 --name companding_GANs --e 11 --bit 3
