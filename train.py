@@ -174,7 +174,7 @@ if __name__ == '__main__':
 
                 # Normalize the output first
                 # x = normalize(x)
-                x = model.Generator(x)
+                # x = model.Generator(x)
 
                 compression_losses = model.compression_loss(x, image)
 
