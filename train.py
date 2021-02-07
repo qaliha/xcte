@@ -154,6 +154,11 @@ if __name__ == '__main__':
     for epoch in range(start_epoch, num_epoch):
         # warming the parameters of encoder if --warm is provided
         if opt.warm and epoch == 1:
+            # Temporary disable gradient for connection weights
+            model.Encoder.connection_weights.requires_grad = False
+            if opt.debug:
+                print(model.Encoder.connection_weights)
+
             data_len = len(training_data_loader)
             bar_enc = tqdm(enumerate(training_data_loader, 1), total=data_len)
 
@@ -190,6 +195,13 @@ if __name__ == '__main__':
                     iteration, data_len, epoch, num_epoch - 1
                 ))
 
+            # Re enable after the warming
+            model.Encoder.connection_weights.requires_grad = True
+            if opt.debug:
+                print(model.Encoder.connection_weights)
+
+        if opt.debug:
+            print(model.Encoder.connection_weights)
         # starting the epoch
 
         data_len = len(compression_data_loader)
@@ -367,7 +379,7 @@ if __name__ == '__main__':
             t_generator_losses += generator_losses.item()
 
             if opt.debug:
-                assert(list(model.Encoder.parameters())[0].grad is not None)
+                assert(list(model.Encoder.parameters())[1].grad is not None)
                 assert(list(model.Generator.parameters())[0].grad is not None)
                 assert(list(model.Discriminator.parameters())
                        [0].grad is not None)
