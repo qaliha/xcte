@@ -125,6 +125,8 @@ if __name__ == '__main__':
     sch_generator = get_scheduler(opt_generator, opt)
     sch_discriminator = get_scheduler(opt_discriminator, opt)
 
+    train_logs_holder = list()
+
     start_epoch = opt.epoch_count
     if start_epoch > 1:
         start_epoch, model, opt_encoder, opt_generator, opt_discriminator, sch_encoder, sch_generator, sch_discriminator = load_checkpoint(
@@ -203,6 +205,8 @@ if __name__ == '__main__':
         if opt.debug:
             print(model.Encoder.connection_weights)
         # starting the epoch
+
+        local_train_logs_holder = list()
 
         data_len = len(compression_data_loader)
         bar = tqdm(enumerate(compression_data_loader, 1), total=data_len)
@@ -378,6 +382,12 @@ if __name__ == '__main__':
             t_discriminator_loss += discriminator_loss.item()
             t_generator_losses += generator_losses.item()
 
+            if iteration == data_len:
+                local_train_logs_holder.append(
+                    t_discriminator_loss/max(1, iteration))
+                local_train_logs_holder.append(
+                    t_generator_losses/max(1, iteration))
+
             if opt.debug:
                 assert(list(model.Encoder.parameters())[1].grad is not None)
                 assert(list(model.Generator.parameters())[0].grad is not None)
@@ -434,6 +444,10 @@ if __name__ == '__main__':
                 print(model.Encoder.connection_weights)
 
             t_compression_losses += compression_losses.item()
+
+            if iteration == data_len:
+                local_train_logs_holder.append(
+                    t_compression_losses/max(1, iteration))
 
             # assert(list(model.Encoder.parameters())[0].grad is not None)
 
@@ -545,14 +559,25 @@ if __name__ == '__main__':
                 _tmp_psnr_expanded, _tmp_ssim_expanded
             ))
 
+        mean_compressiong_psnr = np.ma.masked_invalid(psnr_enc_lists).mean()
+        mean_compressing_ssim = np.ma.masked_invalid(ssim_enc_lists).mean()
+        mean_expanding_psnr = np.ma.masked_invalid(psnr_lists).mean()
+        mean_expanding_ssim = np.ma.masked_invalid(ssim_lists).mean()
+
         print('[%3d/%3d] C[P: %.4fdb S: %.4f] E[P: %.4fdb S: %.4f] [Inf: %d] <-- Average' % (
             epoch, num_epoch - 1,
-            np.ma.masked_invalid(psnr_enc_lists).mean(
-            ), np.ma.masked_invalid(ssim_enc_lists).mean(),
-            np.ma.masked_invalid(psnr_lists).mean(
-            ), np.ma.masked_invalid(ssim_lists).mean(),
+            mean_compressiong_psnr, mean_compressing_ssim,
+            mean_expanding_psnr, mean_expanding_ssim,
             count_inf
         ))
+
+        local_train_logs_holder.append(
+            [mean_compressiong_psnr, mean_compressing_ssim, mean_expanding_psnr, mean_expanding_ssim])
+
+        if opt.debug:
+            print(local_train_logs_holder)
+
+        train_logs_holder.append(local_train_logs_holder)
 
         # Generate checkpoint
         if epoch % opt.epochsave == 0:
@@ -582,7 +607,8 @@ if __name__ == '__main__':
                 # Scheduler
                 'scheduler_e': sch_encoder.state_dict() if opt.commit else None,
                 'scheduler_g': sch_generator.state_dict() if opt.commit else None,
-                'scheduler_d': sch_discriminator.state_dict() if opt.commit else None
+                'scheduler_d': sch_discriminator.state_dict() if opt.commit else None,
+                'logs': train_logs_holder
             }
 
             torch.save(state, model_out_path)
