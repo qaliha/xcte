@@ -106,8 +106,8 @@ class Generator(nn.Module):
         super(Generator, self).__init__()
 
         # nonlineraity
-        self.relu = nn.ReLU()
-        self.leakyRelu = nn.LeakyReLU(0.2)
+        self.relu = nn.PReLU()
+        self.leakyRelu = nn.LeakyReLU(negative_slope=0.2)
         self.tanh = nn.Tanh()
 
         norm_kwargs = dict(momentum=0.1, affine=True,

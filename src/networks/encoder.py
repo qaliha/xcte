@@ -12,7 +12,7 @@ class FeatureExtractor(nn.Module):
     def __init__(self):
         super(FeatureExtractor, self).__init__()
 
-        self.activation = nn.ReLU()
+        self.activation = nn.PReLU()
         # self.tanh = nn.Tanh()
         norm = channel.ChannelNorm2D_wrap
         # norm = channel.ChannelNorm2D_wrap
@@ -34,9 +34,16 @@ class FeatureExtractor(nn.Module):
         )
 
         # (256,256) -> (128,128)
+        # self.conv_block2 = nn.Sequential(
+        #     nn.ReflectionPad2d((0, 1, 1, 0)),
+        #     nn.Conv2d(64, 128, 3, **cnn_kwargs),
+        #     norm(128, **norm_kwargs),
+        #     self.activation,
+        # )
+
         self.conv_block2 = nn.Sequential(
-            nn.ReflectionPad2d((0, 1, 1, 0)),
-            nn.Conv2d(64, 128, 3, **cnn_kwargs),
+            nn.ReflectionPad2d(1),
+            nn.Conv2d(64, 128, 3, stride=1),
             norm(128, **norm_kwargs),
             self.activation,
         )
@@ -47,6 +54,13 @@ class FeatureExtractor(nn.Module):
             norm(128, **norm_kwargs),
             self.activation,
         )
+
+        # self.conv_block3 = nn.Sequential(
+        #     nn.ReflectionPad2d(1),
+        #     nn.Conv2d(128, 128, 3, stride=1),
+        #     norm(128, **norm_kwargs),
+        #     self.activation,
+        # )
 
         # (128,128) -> (64,64)
         # self.conv_block3 = nn.Sequential(
@@ -68,8 +82,8 @@ class FeatureExtractor(nn.Module):
         # Feature maps have dimension C x W/16 x H/16
         # (32,32) -> (32,32)
         self.conv_block_out = nn.Sequential(
-            nn.ReflectionPad2d(1),
-            nn.Conv2d(128, 12, 3, stride=1),
+            nn.ReflectionPad2d((0, 1, 1, 0)),
+            nn.Conv2d(128, 12, 3, **cnn_kwargs),
             norm(12, **norm_kwargs),
             self.activation,
         )

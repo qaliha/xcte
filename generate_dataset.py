@@ -5,19 +5,24 @@ import numpy as np
 from PIL import Image
 from tqdm import tqdm
 
+
 def mkdir(directory, mode=0o777):
     if not os.path.exists(directory):
         os.makedirs(directory)
         os.chmod(directory, mode=mode)
 
+
 def dir_exists(directory):
     return os.path.exists(directory)
+
 
 def crop(img_arr, block_size):
     h_b, w_b = block_size
     v_splited = np.vsplit(img_arr, img_arr.shape[0]//h_b)
-    h_splited = np.concatenate([np.hsplit(col, img_arr.shape[1]//w_b) for col in v_splited], 0)
+    h_splited = np.concatenate(
+        [np.hsplit(col, img_arr.shape[1]//w_b) for col in v_splited], 0)
     return h_splited
+
 
 def generate_patches(src_path, files, set_path, crop_size, img_format, max_patches):
     img_path = os.path.join(src_path, files)
@@ -39,8 +44,10 @@ def generate_patches(src_path, files, set_path, crop_size, img_format, max_patch
         rem_w = (w % crop_size[1])
         img = img[:h-rem_h, :w-rem_w]
         img_patches = crop(img, crop_size)
-    
+
     # print('Cropped')
+
+    n = 0
 
     for i in range(min(len(img_patches), max_patches)):
         img = Image.fromarray(img_patches[i])
@@ -49,7 +56,12 @@ def generate_patches(src_path, files, set_path, crop_size, img_format, max_patch
             os.path.join(filedir, '{}_{}.{}'.format(name, i, img_format))
         )
 
-def main(target_dataset_folder, dataset_path, crop_size, img_format, max_patches):
+        n += 1
+
+    return n
+
+
+def main(target_dataset_folder, dataset_path, crop_size, img_format, max_patches, max_n):
     print('[ Creating Dataset ]')
     print('Crop Size : {}'.format(crop_size))
     print('Target       : {}'.format(target_dataset_folder))
@@ -69,26 +81,45 @@ def main(target_dataset_folder, dataset_path, crop_size, img_format, max_patches
     max = len(img_files)
     bar = tqdm(img_files)
     i = 0
+    j = 0
     for files in bar:
-        generate_patches(src_path, files, set_path, crop_size, img_format, max_patches)
+        k = generate_patches(src_path, files, set_path,
+                             crop_size, img_format, max_patches)
 
-        bar.set_description(desc='itr: %d/%d' %(
+        bar.set_description(desc='itr: %d/%d' % (
             i, max
         ))
+
+        j += k
+
+        if j >= max_n:
+            # Stop the process
+            print('Dataset count has been fullfuled')
+            break
+
         i += 1
 
     print('Dataset Created')
 
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--target_dataset_folder', type=str, help='target folder where image saved')
-    parser.add_argument('--dataset_path', type=str, help='target folder where image saved')
-    parser.add_argument('--max_patches', type=int, help='target folder where image saved')
-    parser.add_argument('--crop_size', type=int, help='crop size, -1 to save whole images')
+    parser.add_argument('--target_dataset_folder', type=str,
+                        help='target folder where image saved')
+    parser.add_argument('--dataset_path', type=str,
+                        help='target folder where image saved')
+    parser.add_argument('--max_patches', type=int,
+                        help='target folder where image saved')
+    parser.add_argument('--max_n', type=int,
+                        help='target folder where image saved', default=99999999)
+    parser.add_argument('--crop_size', type=int,
+                        help='crop size, -1 to save whole images')
     parser.add_argument('--img_format', type=str, help='image format e.g. png')
-    
+
     args = parser.parse_args()
 
-    crop_size = [args.crop_size, args.crop_size] if args.crop_size > 0 else None 
-    main(args.target_dataset_folder, args.dataset_path, crop_size, args.img_format, args.max_patches)
+    crop_size = [args.crop_size,
+                 args.crop_size] if args.crop_size > 0 else None
+    main(args.target_dataset_folder, args.dataset_path,
+         crop_size, args.img_format, args.max_patches, args.max_n)
