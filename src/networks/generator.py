@@ -106,7 +106,7 @@ class Generator(nn.Module):
         super(Generator, self).__init__()
 
         # nonlineraity
-        self.relu = nn.PReLU()
+        self.relu = nn.ReLU()
         self.leakyRelu = nn.LeakyReLU(0.2)
         self.tanh = nn.Tanh()
 

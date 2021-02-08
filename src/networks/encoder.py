@@ -12,7 +12,7 @@ class FeatureExtractor(nn.Module):
     def __init__(self):
         super(FeatureExtractor, self).__init__()
 
-        self.activation = nn.PReLU()
+        self.activation = nn.ReLU()
         # self.tanh = nn.Tanh()
         norm = channel.ChannelNorm2D_wrap
         # norm = channel.ChannelNorm2D_wrap
