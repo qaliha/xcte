@@ -67,6 +67,7 @@ def main(target_dataset_folder, dataset_path, crop_size, img_format, max_patches
     print('Target       : {}'.format(target_dataset_folder))
     print('Dataset       : {}'.format(dataset_path))
     print('Format    : {}'.format(img_format))
+    print('Max N    : {}'.format(max_n))
 
     src_path = dataset_path
     if not dir_exists(src_path):
