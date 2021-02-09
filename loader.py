@@ -36,14 +36,17 @@ class DatasetFromFolder(data.Dataset):
             mkdir(self.b_path)
 
     def __getitem__(self, index):
-        # Crop offset
-        w_offset = random.randint(0, max(0, 286 - 256 - 1))
-        h_offset = random.randint(0, max(0, 286 - 256 - 1))
-
         a = Image.open(
             join(self.a_path, self.image_filenames[index])).convert('RGB')
 
-        a_resized = a.resize((286, 286), Image.BICUBIC)
+        image_size = a.size[0]
+        image_bicubic = image_size + 30
+
+        # Crop offset
+        w_offset = random.randint(0, max(0, image_bicubic - image_size - 1))
+        h_offset = random.randint(0, max(0, image_bicubic - image_size - 1))
+
+        a_resized = a.resize((image_bicubic, image_bicubic), Image.BICUBIC)
 
         a = transforms.ToTensor()(a)
         a = transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))(a)
@@ -51,7 +54,7 @@ class DatasetFromFolder(data.Dataset):
         a_resized = transforms.ToTensor()(a_resized)
 
         a_resized = a_resized[:, h_offset:h_offset +
-                              256, w_offset:w_offset + 256]
+                              image_size, w_offset:w_offset + image_size]
 
         a_resized = transforms.Normalize(
             (0.5, 0.5, 0.5), (0.5, 0.5, 0.5))(a_resized)
@@ -63,7 +66,7 @@ class DatasetFromFolder(data.Dataset):
         if exists(b_path):
             b = Image.open(b_path).convert('RGB')
 
-            b_resized = b.resize((286, 286), Image.BICUBIC)
+            b_resized = b.resize((image_bicubic, image_bicubic), Image.BICUBIC)
 
             b = transforms.ToTensor()(b)
             b = transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))(b)
@@ -71,7 +74,7 @@ class DatasetFromFolder(data.Dataset):
             b_resized = transforms.ToTensor()(b_resized)
 
             b_resized = b_resized[:, h_offset:h_offset +
-                                  256, w_offset:w_offset + 256]
+                                  image_size, w_offset:w_offset + image_size]
 
             b_resized = transforms.Normalize(
                 (0.5, 0.5, 0.5), (0.5, 0.5, 0.5))(b_resized)
