@@ -98,8 +98,8 @@ if __name__ == '__main__':
     train_set = get_training_set(root_path + opt.dataset)
     test_set = get_test_set(root_path + opt.dataset)
 
-    compression_data_loader = DataLoader(
-        dataset=train_set, num_workers=4, batch_size=opt.batch_size, shuffle=True)
+    # compression_data_loader = DataLoader(
+    #     dataset=train_set, num_workers=4, batch_size=opt.batch_size, shuffle=True)
     training_data_loader = DataLoader(
         dataset=train_set, num_workers=4, batch_size=opt.batch_size, shuffle=True)
     testing_data_loader = DataLoader(
@@ -208,8 +208,8 @@ if __name__ == '__main__':
 
         local_train_logs_holder = list()
 
-        data_len = len(compression_data_loader)
-        bar = tqdm(enumerate(compression_data_loader, 1), total=data_len)
+        data_len = len(training_data_loader)
+        bar = tqdm(enumerate(training_data_loader, 1), total=data_len)
 
         # list of compressed image genrated by Encoder
         # compressed_images = list()
