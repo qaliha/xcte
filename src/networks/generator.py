@@ -131,9 +131,9 @@ class Generator(nn.Module):
         self.res4 = ResidualBlock(128)
         self.res5 = ResidualBlock(128)
         self.res6 = ResidualBlock(128)
-        self.res7 = ResidualBlock(128)
-        self.res8 = ResidualBlock(128)
-        self.res9 = ResidualBlock(128)
+        # self.res7 = ResidualBlock(128)
+        # self.res8 = ResidualBlock(128)
+        # self.res9 = ResidualBlock(128)
 
         self.deconv_4 = UpsampleConvLayer(128, 128, kernel_size=3, stride=1)
         self.in4_d = channel.ChannelNorm2D_wrap(128, **norm_kwargs)
@@ -167,9 +167,9 @@ class Generator(nn.Module):
         res = self.res4(res)
         res = self.res5(res)
         res = self.res6(res)
-        res = self.res7(res)
-        res = self.res8(res)
-        res = self.res9(res)
+        # res = self.res7(res)
+        # res = self.res8(res)
+        # res = self.res9(res)
 
         res = self.in4_d(self.deconv_4(res))
 
