@@ -25,12 +25,14 @@ def is_image_file(filename):
 
 
 class DatasetFromFolder(data.Dataset):
-    def __init__(self, image_dir):
+    def __init__(self, image_dir, scale_n_crop):
         super(DatasetFromFolder, self).__init__()
         self.a_path = join(image_dir, "a")
         self.b_path = join(image_dir, "b")
         self.image_filenames = [x for x in listdir(
             self.a_path) if is_image_file(x)]
+
+        self.scale_n_crop = scale_n_crop
 
         if not dir_exists(self.b_path):
             mkdir(self.b_path)
@@ -40,7 +42,7 @@ class DatasetFromFolder(data.Dataset):
             join(self.a_path, self.image_filenames[index])).convert('RGB')
 
         image_size = a.size[0]
-        image_bicubic = image_size + 30
+        image_bicubic = (image_size + 30) if self.scale_n_crop else image_size
 
         # Crop offset
         w_offset = random.randint(0, max(0, image_bicubic - image_size - 1))

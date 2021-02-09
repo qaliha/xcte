@@ -67,6 +67,8 @@ if __name__ == '__main__':
                         help='warming up the training by first train encoder to atleast generate "similiar" image to input')
     parser.add_argument('--cuda', action='store_true', help='use cuda?')
     parser.add_argument('--debug', action='store_true', help='use debug mode?')
+    parser.add_argument('--noscale', action='store_true',
+                        help='use scale and random crop?')
     parser.add_argument('--epochsave', type=int, default=50, help='test')
     parser.add_argument('--batch_size', type=int,
                         default=8, help='training batch size')
@@ -95,8 +97,10 @@ if __name__ == '__main__':
 
     print('===> Loading datasets')
     root_path = "dataset/"
-    train_set = get_training_set(root_path + opt.dataset)
-    test_set = get_test_set(root_path + opt.dataset)
+    train_set = get_training_set(
+        root_path + opt.dataset, scale_n_crop=opt.noscale == False)
+    test_set = get_test_set(root_path + opt.dataset,
+                            scale_n_crop=opt.noscale == False)
 
     # compression_data_loader = DataLoader(
     #     dataset=train_set, num_workers=4, batch_size=opt.batch_size, shuffle=True)
