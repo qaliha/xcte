@@ -1,6 +1,5 @@
 import torch
-from torchvision import transforms
-from src.utils.tensor import tensor2img
+
 
 def _compress(tensor, bit):
     max_val = 2**bit - 1

@@ -99,7 +99,7 @@ if __name__ == '__main__':
     test_set = get_test_set(root_path + opt.dataset)
 
     compression_data_loader = DataLoader(
-        dataset=train_set, num_workers=4, batch_size=1, shuffle=True)
+        dataset=train_set, num_workers=4, batch_size=opt.batch_size, shuffle=True)
     training_data_loader = DataLoader(
         dataset=train_set, num_workers=4, batch_size=opt.batch_size, shuffle=True)
     testing_data_loader = DataLoader(
@@ -219,7 +219,7 @@ if __name__ == '__main__':
         for iteration, batch in bar:
             # compress original image (not cropped to get full image)
             image = batch[0].to(device)
-            compressed_path = batch[2][0]
+            compressed_path = batch[2]
 
             # Convert to tensor first
             # compressed = _compress(image, 3)
@@ -228,8 +228,12 @@ if __name__ == '__main__':
 
             # Encoder [-1, 1], Compressed: [0, 1]
             encoder_output = model.Encoder(image)
-            compressed_image = model.compress(prepare_for_compression_from_normalized_input(
-                encoder_output.detach().squeeze(0).cpu()))
+            # compressed_image = model.compress(prepare_for_compression_from_normalized_input(
+            #     encoder_output.detach().squeeze(0).cpu()))
+
+            # Convert from [-1, 1] to [0, 1]
+            compressed_image = (encoder_output + 1.) / 2.
+            compressed_image = model.compress(compressed_image.detach())
 
             # save_img_version(image.detach().squeeze(0).cpu(), 'interm/encoder.png')
 
@@ -238,7 +242,8 @@ if __name__ == '__main__':
             #     save_img(compressed_image[0].squeeze(0), 'try.png')
 
             # if opt.debug:
-            save_img(compressed_image, compressed_path)
+            for i in range(compressed_image.size(0)):
+                save_img(compressed_image[i, :, :, :], compressed_path[i])
 
             # compressed_images.append(compressed_image)
             # batched_images.append(image)
@@ -338,7 +343,7 @@ if __name__ == '__main__':
 
             decoder_losses = model.restruction_loss(expanded, image)
             # perceptual_losses = model.perceptual_loss(expanded, image, normalize=False)
-            generator_losses = .15 * gan_losses + decoder_losses
+            generator_losses = gan_losses + decoder_losses
 
             if opt.debug:
                 assert(gan_losses.requires_grad == True)

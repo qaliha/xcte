@@ -100,7 +100,7 @@ class Model(nn.Module):
         # Normalize the input image
         # [-1., 1.] -> [0., 1.]
         x_real = (x_real + 1.) / 2.
-        x_gen = (x_gen + 1.) / 2
+        x_gen = (x_gen + 1.) / 2.
 
         distortion_loss = self.distortion_loss(x_gen, x_real)
         weighted_distortion = distortion_loss * self.k_M
@@ -114,7 +114,7 @@ class Model(nn.Module):
         # Normalize the input image
         # [-1., 1.] -> [0., 1.]
         x_real = (x_real + 1.) / 2.
-        x_gen = (x_gen + 1.) / 2
+        x_gen = (x_gen + 1.) / 2.
 
         distortion_loss = self.distortion_loss(x_gen, x_real)
         # perceptual_loss = self.perceptual_loss(x_gen, x_real, normalize=True)
