@@ -32,6 +32,7 @@ model = Model(opt.bit, opt)
 checkpoint = torch.load(model_path, map_location=device)
 model.load_state_dict(checkpoint['model_dict'])
 
+print(checkpoint['logs'])
 print(model.Encoder.connection_weights)
 
 image_filenames = [x for x in os.listdir(image_dir) if is_image_file(x)]
