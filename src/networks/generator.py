@@ -93,6 +93,8 @@ class ConvLayer(nn.Module):
             self.activation = nn.Tanh()
         elif activation == 'relu':
             self.activation = nn.ReLU()
+        else:
+            self.activation = None
 
         # normalization
         self.normalization = channel.ChannelNorm2D_wrap(out_ch,
@@ -102,7 +104,10 @@ class ConvLayer(nn.Module):
         x = self.pad(x)
         x = self.conv_layer(x)
         x = self.normalization(x)
-        x = self.activation(x)
+        if self.activation is not None:
+            # if activation is not none call the activation
+            x = self.activation(x)
+
         return x
 
 
@@ -110,15 +115,19 @@ class ResidualLayer(nn.Module):
     def __init__(self, in_ch, out_ch, kernel_size, stride):
         super(ResidualLayer, self).__init__()
 
+        self.relu = nn.ReLU()
         self.conv1 = ConvLayer(in_ch, out_ch, kernel_size,
                                stride, activation='relu')
 
         self.conv2 = ConvLayer(out_ch, out_ch, kernel_size,
-                               stride, activation='relu')
+                               stride, activation='linear')
 
     def forward(self, x):
-        y = self.conv1(x)
-        return self.conv2(y) + x
+        identity_map = x
+        res = self.conv1(x)
+        res = self.conv2(res)
+
+        return torch.add(res, identity_map)
 
 
 class DeconvLayer(nn.Module):
