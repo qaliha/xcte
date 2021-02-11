@@ -84,7 +84,7 @@ class Generator(nn.Module):
 
 
 class ConvLayer(nn.Module):
-    def __init__(self, in_ch, out_ch, kernel_size, stride, activation='prelu'):
+    def __init__(self, in_ch, out_ch, kernel_size, stride, activation='prelu', channel_norm=False):
         super(ConvLayer, self).__init__()
 
         # padding
@@ -105,8 +105,11 @@ class ConvLayer(nn.Module):
             self.activation = None
 
         # normalization
-        self.normalization = channel.ChannelNorm2D_wrap(out_ch,
-                                                        momentum=0.1, affine=True, track_running_stats=False)
+        if channel_norm:
+            self.normalization = channel.ChannelNorm2D_wrap(out_ch,
+                                                            momentum=0.1, affine=True, track_running_stats=False)
+        else:
+            self.normalization = nn.BatchNorm2d(out_ch)
 
     def forward(self, x):
         x = self.pad(x)
@@ -142,11 +145,11 @@ class ResidualLayer(nn.Module):
 
 
 class DeconvLayer(nn.Module):
-    def __init__(self, in_ch, out_ch, kernel_size, stride, activation='prelu', upsample='nearest'):
+    def __init__(self, in_ch, out_ch, kernel_size, stride, activation='prelu', upsample='nearest', channel_norm=False):
         super(DeconvLayer, self).__init__()
 
         # upsample
-        self.upsample = upsample
+        self.upsample = nn.Upsample(scale_factor=2, mode=upsample)
 
         # pad
         self.pad = nn.ReflectionPad2d(kernel_size//2)
@@ -157,17 +160,18 @@ class DeconvLayer(nn.Module):
         # activation
         if activation == 'prelu':
             self.activation = nn.PReLU()
-        elif activation == 'linear':
-            self.activation = lambda x: x
         else:
             raise NotImplementedError("Not implemented!")
 
         # normalization
-        self.normalization = channel.ChannelNorm2D_wrap(out_ch,
-                                                        momentum=0.1, affine=True, track_running_stats=False)
+        if channel_norm:
+            self.normalization = channel.ChannelNorm2D_wrap(out_ch,
+                                                            momentum=0.1, affine=True, track_running_stats=False)
+        else:
+            self.normalization = nn.BatchNorm2d(out_ch)
 
     def forward(self, x):
-        x = nn.functional.interpolate(x, scale_factor=2, mode=self.upsample)
+        x = self.upsample(x)
         x = self.pad(x)
         x = self.conv(x)
         x = self.normalization(x)
