@@ -91,6 +91,8 @@ class ConvLayer(nn.Module):
             self.activation = nn.PReLU()
         elif activation == 'tanh':
             self.activation = nn.Tanh()
+        elif activation == 'relu':
+            self.activation = nn.ReLU()
 
         # normalization
         self.normalization = channel.ChannelNorm2D_wrap(out_ch,
@@ -108,9 +110,11 @@ class ResidualLayer(nn.Module):
     def __init__(self, in_ch, out_ch, kernel_size, stride):
         super(ResidualLayer, self).__init__()
 
-        self.conv1 = ConvLayer(in_ch, out_ch, kernel_size, stride)
+        self.conv1 = ConvLayer(in_ch, out_ch, kernel_size,
+                               stride, activation='relu')
 
-        self.conv2 = ConvLayer(out_ch, out_ch, kernel_size, stride)
+        self.conv2 = ConvLayer(out_ch, out_ch, kernel_size,
+                               stride, activation='relu')
 
     def forward(self, x):
         y = self.conv1(x)
