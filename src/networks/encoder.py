@@ -6,108 +6,24 @@ from torch.autograd import Variable
 
 from src.norm import channel
 from src.utils.compression import _compress
+from src.networks.generator import ConvLayer
 
 
 class FeatureExtractor(nn.Module):
     def __init__(self):
         super(FeatureExtractor, self).__init__()
 
-        self.activation = nn.PReLU()
-        # self.tanh = nn.Tanh()
-        norm = channel.ChannelNorm2D_wrap
-        # norm = channel.ChannelNorm2D_wrap
+        n_features = 64
 
-        cnn_kwargs = dict(stride=2, padding=0, padding_mode='reflect')
-        norm_kwargs = dict(momentum=0.1, affine=True,
-                           track_running_stats=False)
+        model = [ConvLayer(3, n_features, 9, 1)]
+        model += [ConvLayer(n_features, n_features, 9, 1)]
+        model += [ConvLayer(n_features, 12, 3, 2)]
+        model += [nn.PixelShuffle(2)]
 
-        # self.pre_pad = nn.ReflectionPad2d(3)
-        # self.asymmetric_pad = nn.ReflectionPad2d(
-        #     (0, 1, 1, 0))  # Slower than tensorflow?
-        # self.post_pad = nn.ReflectionPad2d(1)
-
-        # (256,256) -> (256,256), with implicit padding
-        self.conv_block1 = nn.Sequential(
-            nn.ReflectionPad2d(3),
-            nn.Conv2d(3, 64, kernel_size=(7, 7), stride=1),
-            self.activation,
-        )
-
-        # (256,256) -> (128,128)
-        # self.conv_block2 = nn.Sequential(
-        #     nn.ReflectionPad2d((0, 1, 1, 0)),
-        #     nn.Conv2d(64, 128, 3, **cnn_kwargs),
-        #     norm(128, **norm_kwargs),
-        #     self.activation,
-        # )
-
-        self.conv_block2 = nn.Sequential(
-            nn.ReflectionPad2d(1),
-            nn.Conv2d(64, 128, 3, stride=1),
-            norm(128, **norm_kwargs),
-            self.activation,
-        )
-
-        self.conv_block3 = nn.Sequential(
-            nn.ReflectionPad2d(1),
-            nn.Conv2d(128, 128, 3, stride=1),
-            norm(128, **norm_kwargs),
-            self.activation,
-        )
-
-        # self.conv_block3 = nn.Sequential(
-        #     nn.ReflectionPad2d(1),
-        #     nn.Conv2d(128, 128, 3, stride=1),
-        #     norm(128, **norm_kwargs),
-        #     self.activation,
-        # )
-
-        # (128,128) -> (64,64)
-        # self.conv_block3 = nn.Sequential(
-        #     self.asymmetric_pad,
-        #     nn.Conv2d(128, 256, 3, **cnn_kwargs),
-        #     norm(256, **norm_kwargs),
-        #     self.activation,
-        # )
-
-        # (64,64) -> (32,32)
-        # self.conv_block4 = nn.Sequential(
-        #     self.asymmetric_pad,
-        #     nn.Conv2d(256, 512, 3, **cnn_kwargs),
-        #     norm(512, **norm_kwargs),
-        #     self.activation,
-        # )
-
-        # Project channels onto space w/ dimension C
-        # Feature maps have dimension C x W/16 x H/16
-        # (32,32) -> (32,32)
-        self.conv_block_out = nn.Sequential(
-            nn.ReflectionPad2d((0, 1, 1, 0)),
-            nn.Conv2d(128, 12, 3, **cnn_kwargs),
-            norm(12, **norm_kwargs),
-            self.activation,
-        )
-
-        # Upsample
-        # self.context_conv = nn.Conv2d(3, 12, kernel_size=3, padding=1, padding_mode='reflect')
-
-        # (*, 12, 128, 128) -> (*, 3, 256, 256)
-        # self.context_upsample = nn.Upsample(scale_factor=4, mode='bicubic', align_corners=True)
-        # self.context_upsample = nn.Upsample(scale_factor=2, mode='nearest')
-        self.pixel_shuffle = nn.PixelShuffle(2)
+        self.model = nn.Sequential(*model)
 
     def forward(self, x):
-        y = self.conv_block1(x)
-        y = self.conv_block2(y)
-        y = self.conv_block3(y)
-        # y = self.conv_block4(y)
-        y = self.conv_block_out(y)
-
-        # y = self.activation(self.context_conv(y))
-
-        # Upsample to get features
-        # y = self.context_upsample(y)
-        y = self.pixel_shuffle(y)
+        y = self.model(x)
 
         return y
 

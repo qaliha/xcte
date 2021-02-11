@@ -1,13 +1,16 @@
+import argparse
 import torch.optim as optim
 import torch
 
 from src.networks.discriminator import Discriminator
-from src.networks.generator import Generator
+from src.networks.generator import Generator, trial
 from src.model import Model
 from src.utils.compression import _compress
 # from loader import normalize
 
-import argparse
+trial()
+exit()
+
 
 parser = argparse.ArgumentParser(description='Compressing')
 parser.add_argument('--cuda', action='store_true', help='use cuda?')
