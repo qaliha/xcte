@@ -8,6 +8,10 @@ from src.model import Model
 from src.utils.compression import _compress
 # from loader import normalize
 
+generator = Generator()
+
+torch.save(generator, 'generator.pt')
+
 trial()
 exit()
 

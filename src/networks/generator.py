@@ -47,7 +47,7 @@ class Generator(nn.Module):
         # self.leakyRelu = nn.LeakyReLU(negative_slope=0.2)
 
         model_conv_ = [PixelUnshuffle(2)]
-        model_conv_ += [nn.UpsamplingNearest2d(scale_factor=2)]
+        model_conv_ += [nn.Upsample(scale_factor=2, mode='nearest')]
         model_conv_ += [ConvLayer(12, in_feat, 9, 1)]
         model_conv_ += [ConvLayer(in_feat, in_feat * 2, 3, 2)]
         model_conv_ += [ConvLayer(in_feat * 2, in_feat * 4, 3, 2)]
@@ -60,6 +60,10 @@ class Generator(nn.Module):
 
         self.model_resblocks = nn.Sequential(*model_resblocks_)
 
+        self.leaky = nn.LeakyReLU(negative_slope=0.2)
+        self.model_resout = ConvLayer(
+            in_feat * 4, in_feat * 4, 3, 1, activation='skip')
+
         model_deconv_ = [DeconvLayer(in_feat * 4, in_feat * 2, 3, 1)]
         model_deconv_ += [DeconvLayer(in_feat * 2, in_feat, 3, 1)]
         model_deconv_ += [ConvLayer(in_feat, 3, 9, 1, activation='tanh')]
@@ -67,10 +71,14 @@ class Generator(nn.Module):
         self.model_deconv = nn.Sequential(*model_deconv_)
 
     def forward(self, x):
-        head = self.model_conv(x)
-        x = self.model_resblocks(head)
-        x += head
-        out = self.model_deconv(x)
+        y = self.model_conv(x)
+
+        residual = y
+        res = self.model_resblocks(y)
+        res = self.model_resout(res)
+        res = torch.add(res, residual)
+        y = self.leaky(res)
+        out = self.model_deconv(y)
 
         return out
 
@@ -115,18 +123,22 @@ class ResidualLayer(nn.Module):
     def __init__(self, in_ch, out_ch, kernel_size, stride):
         super(ResidualLayer, self).__init__()
 
+        self.relu = nn.ReLU()
         self.conv1 = ConvLayer(in_ch, out_ch, kernel_size,
                                stride, activation='relu')
 
         self.conv2 = ConvLayer(out_ch, out_ch, kernel_size,
-                               stride, activation='linear')
+                               stride, activation='skip')
 
     def forward(self, x):
         identity_map = x
         res = self.conv1(x)
         res = self.conv2(res)
 
-        return torch.add(res, identity_map)
+        res = torch.add(res, identity_map)
+        out = self.relu(res)
+
+        return out
 
 
 class DeconvLayer(nn.Module):
@@ -145,8 +157,10 @@ class DeconvLayer(nn.Module):
         # activation
         if activation == 'prelu':
             self.activation = nn.PReLU()
-        else:
+        elif activation == 'linear':
             self.activation = lambda x: x
+        else:
+            raise NotImplementedError("Not implemented!")
 
         # normalization
         self.normalization = channel.ChannelNorm2D_wrap(out_ch,
