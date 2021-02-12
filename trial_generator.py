@@ -1,7 +1,7 @@
 import argparse
 import torch.optim as optim
 import torch
-
+from torchsummary import summary
 from src.networks.discriminator import Discriminator
 from src.networks.generator import Generator, trial
 from src.model import Model
@@ -10,7 +10,8 @@ from src.utils.compression import _compress
 
 generator = Generator()
 
-torch.save(generator, 'generator.pt')
+summary(generator, (3, 256, 256), 1)
+# torch.save(generator, 'generator.pt')
 
 trial()
 exit()

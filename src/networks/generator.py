@@ -41,32 +41,30 @@ class PixelUnshuffle(nn.Module):
 
 
 class Generator(nn.Module):
-    def __init__(self, n_blocks=6, in_feat=32):
+    def __init__(self, n_blocks=6, n_feature=64):
         super(Generator, self).__init__()
 
         # self.leakyRelu = nn.LeakyReLU(negative_slope=0.2)
 
         model_conv_ = [PixelUnshuffle(2)]
         model_conv_ += [nn.Upsample(scale_factor=2, mode='nearest')]
-        model_conv_ += [ConvLayer(12, in_feat, 9, 1)]
-        model_conv_ += [ConvLayer(in_feat, in_feat * 2, 3, 2)]
-        model_conv_ += [ConvLayer(in_feat * 2, in_feat * 4, 3, 2)]
+        model_conv_ += [ConvLayer(12, n_feature, 9, 1)]
+        model_conv_ += [ConvLayer(n_feature, n_feature,
+                                  3, 1, activation='leaky')]
 
         self.model_conv = nn.Sequential(*model_conv_)
 
         model_resblocks_ = []
         for i in range(n_blocks):
-            model_resblocks_ += [ResidualLayer(in_feat * 4, in_feat * 4, 3, 1)]
+            model_resblocks_ += [ResidualLayer(n_feature, n_feature, 3, 1)]
 
         self.model_resblocks = nn.Sequential(*model_resblocks_)
 
         self.leaky = nn.LeakyReLU(negative_slope=0.2)
         self.model_resout = ConvLayer(
-            in_feat * 4, in_feat * 4, 3, 1, activation='skip')
+            n_feature, n_feature, 3, 1, activation='skip')
 
-        model_deconv_ = [DeconvLayer(in_feat * 4, in_feat * 2, 3, 1)]
-        model_deconv_ += [DeconvLayer(in_feat * 2, in_feat, 3, 1)]
-        model_deconv_ += [ConvLayer(in_feat, 3, 9, 1, activation='tanh')]
+        model_deconv_ = [ConvLayer(n_feature, 3, 9, 1, activation='tanh')]
 
         self.model_deconv = nn.Sequential(*model_deconv_)
 
@@ -84,7 +82,7 @@ class Generator(nn.Module):
 
 
 class ConvLayer(nn.Module):
-    def __init__(self, in_ch, out_ch, kernel_size, stride, activation='relu', norm='channel'):
+    def __init__(self, in_ch, out_ch, kernel_size, stride, activation='prelu', norm='channel'):
         super(ConvLayer, self).__init__()
 
         # padding
@@ -101,6 +99,8 @@ class ConvLayer(nn.Module):
             self.activation = nn.Tanh()
         elif activation == 'relu':
             self.activation = nn.ReLU()
+        elif activation == 'leaky':
+            self.activation = nn.LeakyReLU(negative_slope=0.2)
         else:
             self.activation = None
 

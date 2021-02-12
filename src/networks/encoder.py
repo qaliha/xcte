@@ -13,7 +13,7 @@ class FeatureExtractor(nn.Module):
     def __init__(self):
         super(FeatureExtractor, self).__init__()
 
-        n_features = 64
+        n_features = 128
 
         model = [ConvLayer(3, n_features, 3, 1)]
         model += [ConvLayer(n_features, n_features, 3, 1)]
