@@ -84,7 +84,7 @@ class Generator(nn.Module):
 
 
 class ConvLayer(nn.Module):
-    def __init__(self, in_ch, out_ch, kernel_size, stride, activation='prelu', channel_norm=False):
+    def __init__(self, in_ch, out_ch, kernel_size, stride, activation='relu', norm='channel'):
         super(ConvLayer, self).__init__()
 
         # padding
@@ -105,16 +105,20 @@ class ConvLayer(nn.Module):
             self.activation = None
 
         # normalization
-        if channel_norm:
+        if norm == 'channel':
             self.normalization = channel.ChannelNorm2D_wrap(out_ch,
                                                             momentum=0.1, affine=True, track_running_stats=False)
-        else:
+        elif norm == 'batch':
             self.normalization = nn.BatchNorm2d(out_ch)
+        else:
+            self.normalization = None
 
     def forward(self, x):
         x = self.pad(x)
         x = self.conv_layer(x)
-        x = self.normalization(x)
+        if self.normalization is not None:
+            x = self.normalization(x)
+
         if self.activation is not None:
             # if activation is not none call the activation
             x = self.activation(x)
@@ -145,7 +149,7 @@ class ResidualLayer(nn.Module):
 
 
 class DeconvLayer(nn.Module):
-    def __init__(self, in_ch, out_ch, kernel_size, stride, activation='prelu', upsample='nearest', channel_norm=False):
+    def __init__(self, in_ch, out_ch, kernel_size, stride, activation='relu', upsample='nearest', norm='channel'):
         super(DeconvLayer, self).__init__()
 
         # upsample
@@ -160,21 +164,26 @@ class DeconvLayer(nn.Module):
         # activation
         if activation == 'prelu':
             self.activation = nn.PReLU()
+        if activation == 'relu':
+            self.activation = nn.ReLU()
         else:
             raise NotImplementedError("Not implemented!")
 
         # normalization
-        if channel_norm:
+        if norm == 'channel':
             self.normalization = channel.ChannelNorm2D_wrap(out_ch,
                                                             momentum=0.1, affine=True, track_running_stats=False)
-        else:
+        elif norm == 'batch':
             self.normalization = nn.BatchNorm2d(out_ch)
+        else:
+            self.normalization = None
 
     def forward(self, x):
         x = self.upsample(x)
         x = self.pad(x)
         x = self.conv(x)
-        x = self.normalization(x)
+        if self.normalization is not None:
+            x = self.normalization(x)
         x = self.activation(x)
         return x
 
