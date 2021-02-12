@@ -2,7 +2,6 @@ import os
 import argparse
 import random
 from numpy.core.numeric import Inf
-
 from torchsummary import summary
 import torch
 import torchvision.transforms as transforms
@@ -115,8 +114,18 @@ if __name__ == '__main__':
 
     model = Model(bit=opt.bit, opt=opt).to(device)
 
-    summary(model.Encoder, (3, 256, 256), opt.batch_size)
-    summary(model.Generator, (3, 256, 256), opt.batch_size)
+    sample_image_dataset = training_data_loader.dataset
+    n_samples = len(sample_image_dataset)
+
+    # to get a random sample
+    random_index = int(np.random.random()*n_samples)
+    single_example = sample_image_dataset[random_index]
+    single_example_size = list(single_example[0].size())
+    single_example = (
+        single_example_size[0], single_example_size[1], single_example_size[2])
+
+    summary(model.Encoder, single_example, opt.batch_size)
+    summary(model.Generator, single_example, opt.batch_size)
 
     opt_encoder = optim.Adam(model.Encoder.parameters(),
                              lr=opt.lr, betas=(0.5, 0.999))
@@ -268,6 +277,7 @@ if __name__ == '__main__':
 
         t_discriminator_loss = 0
         t_generator_losses = 0
+        t_dec_losses = 0
 
         model.Generator.train()
         model.Discriminator.train()
@@ -309,7 +319,7 @@ if __name__ == '__main__':
             D_real_logits, D_gen_logits = torch.chunk(D_out_logits, 2, dim=0)
 
             discriminator_loss = model.gan_loss_hf(
-                D_real, D_gen, D_real_logits, D_gen_logits, 'discriminator_loss')
+                D_real, D_gen, D_real_logits, D_gen_logits, 'discriminator_loss') * 0.5
 
             if opt.debug:
                 assert(discriminator_loss.requires_grad == True)
@@ -347,7 +357,7 @@ if __name__ == '__main__':
 
             decoder_losses = model.restruction_loss(expanded, image)
             # perceptual_losses = model.perceptual_loss(expanded, image, normalize=False)
-            generator_losses = gan_losses + decoder_losses
+            generator_losses = gan_losses * 0.05 + decoder_losses * 0.5
 
             if opt.debug:
                 assert(gan_losses.requires_grad == True)
@@ -390,6 +400,7 @@ if __name__ == '__main__':
 
             t_discriminator_loss += discriminator_loss.item()
             t_generator_losses += generator_losses.item()
+            t_dec_losses += decoder_losses.item()
 
             if iteration == data_len:
                 local_train_logs_holder.append(
@@ -403,10 +414,11 @@ if __name__ == '__main__':
                 assert(list(model.Discriminator.parameters())
                        [0].grad is not None)
 
-            bar_ex.set_description(desc='itr: %d/%d [%3d/%3d] [D_Loss: %.6f] [G_Loss: %.6f] Training Generator' % (
+            bar_ex.set_description(desc='itr: %d/%d [%3d/%3d] [D: %.6f] [G: %.6f] [Dec: %.6f] Training Generator' % (
                 iteration, data_len, epoch, num_epoch - 1,
                 t_discriminator_loss/max(1, iteration),
-                t_generator_losses/max(1, iteration)
+                t_generator_losses/max(1, iteration),
+                t_dec_losses/max(1, iteration)
             ))
 
         bar_enc = tqdm(enumerate(training_data_loader, 1), total=data_len)
@@ -436,7 +448,7 @@ if __name__ == '__main__':
             # x = normalize(x)
             x = model.Generator(x)
 
-            compression_losses = model.compression_loss(x, image)
+            compression_losses = model.compression_loss(x, image) * 0.5
 
             if opt.debug:
                 save_img_version(image.detach().squeeze(
@@ -460,7 +472,7 @@ if __name__ == '__main__':
 
             # assert(list(model.Encoder.parameters())[0].grad is not None)
 
-            bar_enc.set_description(desc='itr: %d/%d [%3d/%3d] [E_Loss: %.6f] Training Encoder' % (
+            bar_enc.set_description(desc='itr: %d/%d [%3d/%3d] [E: %.6f] Training Encoder' % (
                 iteration, data_len, epoch, num_epoch - 1,
                 t_compression_losses/max(1, iteration)
             ))
