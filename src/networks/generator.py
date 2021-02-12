@@ -149,7 +149,7 @@ class ResidualLayer(nn.Module):
 
 
 class DeconvLayer(nn.Module):
-    def __init__(self, in_ch, out_ch, kernel_size, stride, activation='relu', upsample='nearest', norm='channel'):
+    def __init__(self, in_ch, out_ch, kernel_size, stride, activation='relu', upsample='nearest', norm='batch'):
         super(DeconvLayer, self).__init__()
 
         # upsample

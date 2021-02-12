@@ -81,7 +81,7 @@ class Model(nn.Module):
     def distortion_loss(self, x_gen, x_real):
         # loss in [0,255] space but normalized by 255 to not be too big
         # - Delegate scaling to weighting
-        sq_err = self.squared_difference(x_gen*255., x_real*255.) / 255.
+        sq_err = self.squared_difference(x_gen*255., x_real*255.)  # / 255.
         return torch.mean(sq_err)
 
     # def perceptual_loss(self, pred, target, normalize=True):
