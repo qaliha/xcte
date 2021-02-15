@@ -355,9 +355,9 @@ if __name__ == '__main__':
             gan_losses = model.gan_loss_hf(
                 D_real, D_gen, D_real_logits, D_gen_logits, 'generator_loss')
 
-            decoder_losses = model.restruction_loss(expanded, image)
+            decoder_losses = model.restruction_loss(expanded, image) * 0.5
             # perceptual_losses = model.perceptual_loss(expanded, image, normalize=False)
-            generator_losses = gan_losses * 0.05 + decoder_losses * 0.5
+            generator_losses = gan_losses * 0.05 + decoder_losses
 
             if opt.debug:
                 assert(gan_losses.requires_grad == True)
