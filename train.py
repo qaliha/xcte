@@ -27,11 +27,13 @@ warnings.filterwarnings("ignore")
 
 def load_checkpoint(model, opt_e, opt_g, opt_d, sch_e, sch_g, ech_d, filename='net.pth'):
     start_epoch = 0
+    logs = list()
     if os.path.isfile(filename):
         print("=> Loading checkpoint '{}'".format(filename))
         state = torch.load(filename)
 
         start_epoch = state['epoch']
+        logs = state['logs']
         model.load_state_dict(state['model_dict'])
         # optimizer
         opt_e.load_state_dict(state['optimizer_e'])
@@ -45,7 +47,7 @@ def load_checkpoint(model, opt_e, opt_g, opt_d, sch_e, sch_g, ech_d, filename='n
         print("=> No checkpoint found at '{}'".format(filename))
         exit()
 
-    return start_epoch, model, opt_e, opt_g, opt_d, sch_e, sch_g, ech_d
+    return start_epoch, model, opt_e, opt_g, opt_d, sch_e, sch_g, ech_d, logs
 
 
 if __name__ == '__main__':
@@ -142,7 +144,7 @@ if __name__ == '__main__':
 
     start_epoch = opt.epoch_count
     if start_epoch > 1:
-        start_epoch, model, opt_encoder, opt_generator, opt_discriminator, sch_encoder, sch_generator, sch_discriminator = load_checkpoint(
+        start_epoch, model, opt_encoder, opt_generator, opt_discriminator, sch_encoder, sch_generator, sch_discriminator, train_logs_holder = load_checkpoint(
             model, opt_encoder, opt_generator, opt_discriminator, sch_encoder, sch_generator, sch_discriminator, "checkpoint/{}/net_{}_epoch_{}.pth".format(opt.dataset, opt.name, start_epoch-1))
 
         for state in opt_encoder.state.values():
