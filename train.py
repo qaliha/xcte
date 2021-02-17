@@ -321,7 +321,7 @@ if __name__ == '__main__':
             D_real_logits, D_gen_logits = torch.chunk(D_out_logits, 2, dim=0)
 
             discriminator_loss = model.gan_loss_hf(
-                D_real, D_gen, D_real_logits, D_gen_logits, 'discriminator_loss') * 0.5
+                D_real, D_gen, D_real_logits, D_gen_logits, 'discriminator_loss')
 
             if opt.debug:
                 assert(discriminator_loss.requires_grad == True)
@@ -357,9 +357,9 @@ if __name__ == '__main__':
             gan_losses = model.gan_loss_hf(
                 D_real, D_gen, D_real_logits, D_gen_logits, 'generator_loss')
 
-            decoder_losses = model.restruction_loss(expanded, image) * 0.5
+            decoder_losses = model.restruction_loss(expanded, image)
             # perceptual_losses = model.perceptual_loss(expanded, image, normalize=False)
-            generator_losses = gan_losses * 10.0 + decoder_losses
+            generator_losses = gan_losses * 0.1 + decoder_losses
 
             if opt.debug:
                 assert(gan_losses.requires_grad == True)
@@ -450,7 +450,7 @@ if __name__ == '__main__':
             # x = normalize(x)
             x = model.Generator(x)
 
-            compression_losses = model.compression_loss(x, image) * 0.5
+            compression_losses = model.compression_loss(x, image)
 
             if opt.debug:
                 save_img_version(image.detach().squeeze(
