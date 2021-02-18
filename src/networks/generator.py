@@ -61,7 +61,7 @@ class Generator(nn.Module):
 
         self.leaky = nn.LeakyReLU(negative_slope=0.2)
         self.model_resout = ConvLayer(
-            n_feature, n_feature, 3, 1, activation='skip')
+            n_feature, n_feature, 3, 1, activation='skip', norm='none')
 
         model_deconv_ = [ConvLayer(n_feature, int(n_feature / 2), 3, 1)]
         model_deconv_ += [ConvLayer(int(n_feature / 2),
@@ -134,7 +134,7 @@ class ResidualLayer(nn.Module):
 
         self.prelu = nn.PReLU()
         self.conv1 = ConvLayer(in_ch, out_ch, kernel_size,
-                               stride)
+                               stride, norm='batch')
 
         self.conv2 = ConvLayer(out_ch, out_ch, kernel_size,
                                stride, activation='none')
