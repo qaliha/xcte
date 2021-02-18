@@ -411,7 +411,9 @@ if __name__ == '__main__':
                     t_generator_losses/max(1, iteration))
 
             if opt.debug:
-                assert(list(model.Encoder.parameters())[1].grad is not None)
+                if opt.warm:
+                    assert(list(model.Encoder.parameters())
+                           [1].grad is not None)
                 assert(list(model.Generator.parameters())[0].grad is not None)
                 assert(list(model.Discriminator.parameters())
                        [0].grad is not None)

@@ -16,7 +16,8 @@ class FeatureExtractor(nn.Module):
         n_features = 64
 
         model = [ConvLayer(3, n_features, 3, 1, norm='skip')]
-        model += [ConvLayer(n_features, n_features, 3, 1)]
+        model += [ConvLayer(n_features, n_features, 3, 1, norm='skip')]
+        model += [ConvLayer(n_features, n_features, 3, 1, norm='skip')]
         model += [ConvLayer(n_features, 12, 3, 2,
                             norm='skip', activation='tanh')]
         model += [nn.PixelShuffle(2)]
