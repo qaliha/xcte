@@ -134,10 +134,10 @@ class ResidualLayer(nn.Module):
 
         self.prelu = nn.PReLU()
         self.conv1 = ConvLayer(in_ch, out_ch, kernel_size,
-                               stride, norm='batch')
+                               stride)
 
         self.conv2 = ConvLayer(out_ch, out_ch, kernel_size,
-                               stride, activation='none')
+                               stride, norm='none', activation='none')
 
     def forward(self, x):
         identity_map = x
