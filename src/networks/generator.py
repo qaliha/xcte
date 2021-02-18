@@ -48,8 +48,7 @@ class Generator(nn.Module):
 
         model_conv_ = [PixelUnshuffle(2)]
         model_conv_ += [nn.Upsample(scale_factor=2, mode='nearest')]
-        model_conv_ += [ConvLayer(12, n_feature, 9, 1,
-                                  activation='leaky', norm='none')]
+        model_conv_ += [ConvLayer(12, n_feature, 9, 1, norm='none')]
 
         self.model_conv = nn.Sequential(*model_conv_)
 
@@ -59,13 +58,14 @@ class Generator(nn.Module):
 
         self.model_resblocks = nn.Sequential(*model_resblocks_)
 
-        self.leaky = nn.LeakyReLU(negative_slope=0.2)
+        self.prelu = nn.PReLU()
         self.model_resout = ConvLayer(
-            n_feature, n_feature, 3, 1, activation='skip')
+            n_feature, n_feature, 3, 1, activation='skip', norm='none')
 
-        model_deconv_ = [ConvLayer(n_feature, int(n_feature / 2), 3, 1)]
+        model_deconv_ = [ConvLayer(n_feature, int(
+            n_feature / 2), 3, 1, norm='none')]
         model_deconv_ += [ConvLayer(int(n_feature / 2),
-                                    3, 9, 1, activation='tanh', norm='none')]
+                                    3, 9, 1, activation='tanh')]
 
         self.model_deconv = nn.Sequential(*model_deconv_)
 
@@ -76,7 +76,7 @@ class Generator(nn.Module):
         res = self.model_resblocks(y)
         res = self.model_resout(res)
         res = torch.add(res, residual)
-        y = self.leaky(res)
+        y = self.prelu(res)
 
         out = self.model_deconv(y)
 
@@ -134,10 +134,10 @@ class ResidualLayer(nn.Module):
 
         self.prelu = nn.PReLU()
         self.conv1 = ConvLayer(in_ch, out_ch, kernel_size,
-                               stride)
+                               stride, norm='batch')
 
         self.conv2 = ConvLayer(out_ch, out_ch, kernel_size,
-                               stride, activation='none')
+                               stride, norm='skip', activation='none')
 
     def forward(self, x):
         identity_map = x
