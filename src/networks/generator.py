@@ -48,7 +48,8 @@ class Generator(nn.Module):
 
         model_conv_ = [PixelUnshuffle(2)]
         model_conv_ += [nn.Upsample(scale_factor=2, mode='nearest')]
-        model_conv_ += [ConvLayer(12, n_feature, 9, 1, norm='none')]
+        model_conv_ += [ConvLayer(12, n_feature, 9, 1,
+                                  norm='none', activation='leaky')]
 
         self.model_conv = nn.Sequential(*model_conv_)
 
@@ -58,7 +59,7 @@ class Generator(nn.Module):
 
         self.model_resblocks = nn.Sequential(*model_resblocks_)
 
-        self.prelu = nn.PReLU()
+        self.leaky = nn.LeakyReLU(negative_slope=0.2)
         self.model_resout = ConvLayer(
             n_feature, n_feature, 3, 1, activation='skip', norm='none')
 
@@ -76,7 +77,7 @@ class Generator(nn.Module):
         res = self.model_resblocks(y)
         res = self.model_resout(res)
         res = torch.add(res, residual)
-        y = self.prelu(res)
+        y = self.leaky(res)
 
         out = self.model_deconv(y)
 
