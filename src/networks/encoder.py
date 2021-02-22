@@ -48,7 +48,7 @@ class Encoder(nn.Module):
         out = F.normalize(y, p=2, dim=1)
 
         out = self.connection_weights * inp + \
-            (1 - self.connection_weights) * y
+            (1 - self.connection_weights) * out
 
         return out
 
