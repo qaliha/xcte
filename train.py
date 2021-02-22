@@ -357,7 +357,7 @@ if __name__ == '__main__':
             gan_losses = model.gan_loss_hf(
                 D_real, D_gen, D_real_logits, D_gen_logits, 'generator_loss')
 
-            decoder_losses = model.restruction_loss(expanded, image)
+            decoder_losses = model.restruction_loss(expanded, image) * 0.5
             # perceptual_losses = model.perceptual_loss(expanded, image, normalize=False)
             generator_losses = gan_losses * 0.1 + decoder_losses
 
@@ -452,7 +452,7 @@ if __name__ == '__main__':
             # x = normalize(x)
             x = model.Generator(x)
 
-            compression_losses = model.compression_loss(x, image)
+            compression_losses = model.compression_loss(x, image) * 0.5
 
             if opt.debug:
                 save_img_version(image.detach().squeeze(
@@ -480,6 +480,8 @@ if __name__ == '__main__':
                 iteration, data_len, epoch, num_epoch - 1,
                 t_compression_losses/max(1, iteration)
             ))
+
+        local_train_logs_holder.append(model.Encoder.connection_weights.item())
 
         update_learning_rate(sch_encoder, opt_encoder)
         update_learning_rate(sch_generator, opt_generator)
