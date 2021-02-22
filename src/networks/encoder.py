@@ -2,8 +2,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from torch.autograd import Variable
-
 from src.norm import channel
 from src.utils.compression import _compress
 from src.networks.generator import ConvLayer
@@ -17,9 +15,10 @@ class FeatureExtractor(nn.Module):
 
         model = [ConvLayer(3, n_features, 3, 1, norm='skip')]
         model += [ConvLayer(n_features, n_features, 3, 1, norm='skip')]
-        model += [ConvLayer(n_features, n_features, 3, 1, norm='skip')]
+        # Ok for now remove this and copy the reference networks
+        # model += [ConvLayer(n_features, n_features, 3, 1, norm='skip')]
         model += [ConvLayer(n_features, 12, 3, 2,
-                            norm='skip', activation='tanh')]
+                            norm='skip', activation='skip')]
         model += [nn.PixelShuffle(2)]
 
         self.model = nn.Sequential(*model)
@@ -46,7 +45,7 @@ class Encoder(nn.Module):
         inp = x
         # Get or extract the feature
         y = self.feature_net(x)
-        # out = F.normalize(y, p=2, dim=1)
+        out = F.normalize(y, p=2, dim=1)
 
         out = self.connection_weights * inp + \
             (1 - self.connection_weights) * y

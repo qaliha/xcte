@@ -41,10 +41,8 @@ class PixelUnshuffle(nn.Module):
 
 
 class Generator(nn.Module):
-    def __init__(self, n_blocks=6, n_feature=64):
+    def __init__(self, n_blocks=5, n_feature=64):
         super(Generator, self).__init__()
-
-        # self.leakyRelu = nn.LeakyReLU(negative_slope=0.2)
 
         model_conv_ = [PixelUnshuffle(2)]
         model_conv_ += [nn.Upsample(scale_factor=2, mode='nearest')]
