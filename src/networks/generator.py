@@ -82,7 +82,7 @@ class Generator(nn.Module):
 
 
 class ConvLayer(nn.Module):
-    def __init__(self, in_ch, out_ch, kernel_size, stride, activation='prelu', norm='channel'):
+    def __init__(self, in_ch, out_ch, kernel_size, stride, activation='prelu', norm='group'):
         super(ConvLayer, self).__init__()
 
         # padding
@@ -108,6 +108,8 @@ class ConvLayer(nn.Module):
         if norm == 'channel':
             self.normalization = channel.ChannelNorm2D_wrap(out_ch,
                                                             momentum=0.1, affine=True, track_running_stats=False)
+        elif norm == 'group':
+            self.normalization = nn.GroupNorm(2, out_ch, affine=True)
         elif norm == 'batch':
             self.normalization = nn.BatchNorm2d(out_ch)
         else:
@@ -173,6 +175,8 @@ class DeconvLayer(nn.Module):
         if norm == 'channel':
             self.normalization = channel.InstanceNorm2D_wrap(out_ch,
                                                              momentum=0.1, affine=True, track_running_stats=False)
+        elif norm == 'group':
+            self.normalization = nn.GroupNorm(2, out_ch, affine=True)
         elif norm == 'batch':
             self.normalization = nn.BatchNorm2d(out_ch)
         else:

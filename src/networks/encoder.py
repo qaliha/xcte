@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from src.norm import channel
+# from src.norm import channel
 from src.utils.compression import _compress
 from src.networks.generator import ConvLayer
 
