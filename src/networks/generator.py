@@ -171,8 +171,8 @@ class DeconvLayer(nn.Module):
 
         # normalization
         if norm == 'channel':
-            self.normalization = channel.ChannelNorm2D_wrap(out_ch,
-                                                            momentum=0.1, affine=True, track_running_stats=False)
+            self.normalization = channel.InstanceNorm2D_wrap(out_ch,
+                                                             momentum=0.1, affine=True, track_running_stats=False)
         elif norm == 'batch':
             self.normalization = nn.BatchNorm2d(out_ch)
         else:
