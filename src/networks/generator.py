@@ -41,7 +41,7 @@ class PixelUnshuffle(nn.Module):
 
 
 class Generator(nn.Module):
-    def __init__(self, n_blocks=5, n_feature=64):
+    def __init__(self, n_blocks=6, n_feature=64):
         super(Generator, self).__init__()
 
         model_conv_ = [PixelUnshuffle(2)]
