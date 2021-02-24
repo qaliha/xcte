@@ -82,7 +82,7 @@ class Generator(nn.Module):
 
 
 class ConvLayer(nn.Module):
-    def __init__(self, in_ch, out_ch, kernel_size, stride, activation='prelu', norm='batch'):
+    def __init__(self, in_ch, out_ch, kernel_size, stride, activation='prelu', norm='group'):
         super(ConvLayer, self).__init__()
 
         # padding
