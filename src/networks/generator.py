@@ -59,7 +59,7 @@ class Generator(nn.Module):
 
         self.leaky = nn.LeakyReLU(negative_slope=0.2)
         self.model_resout = ConvLayer(
-            n_feature, n_feature, 3, 1, activation='skip')
+            n_feature, n_feature, 3, 1, activation='skip', norm='none')
 
         model_deconv_ = [ConvLayer(n_feature, int(n_feature / 2), 3, 1)]
         model_deconv_ += [ConvLayer(int(n_feature / 2),
@@ -109,7 +109,7 @@ class ConvLayer(nn.Module):
             self.normalization = channel.ChannelNorm2D_wrap(out_ch,
                                                             momentum=0.1, affine=True, track_running_stats=False)
         elif norm == 'group':
-            self.normalization = nn.GroupNorm(2, out_ch, affine=True)
+            self.normalization = nn.GroupNorm(4, out_ch)
         elif norm == 'batch':
             self.normalization = nn.BatchNorm2d(out_ch)
         else:
