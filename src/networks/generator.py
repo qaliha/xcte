@@ -46,7 +46,7 @@ class Generator(nn.Module):
 
         model_conv_ = [PixelUnshuffle(2)]
         model_conv_ += [nn.Upsample(scale_factor=2, mode='nearest')]
-        model_conv_ += [ConvLayer(12, n_feature, 9, 1,
+        model_conv_ += [ConvLayer(12, n_feature, 3, 1,
                                   activation='leaky', norm='none')]
 
         self.model_conv = nn.Sequential(*model_conv_)
@@ -63,7 +63,7 @@ class Generator(nn.Module):
 
         model_deconv_ = [ConvLayer(n_feature, int(n_feature / 2), 3, 1)]
         model_deconv_ += [ConvLayer(int(n_feature / 2),
-                                    3, 9, 1, activation='tanh', norm='none')]
+                                    3, 3, 1, activation='tanh', norm='none')]
 
         self.model_deconv = nn.Sequential(*model_deconv_)
 
@@ -82,15 +82,20 @@ class Generator(nn.Module):
 
 
 class ConvLayer(nn.Module):
-    def __init__(self, in_ch, out_ch, kernel_size, stride, activation='prelu', norm='group'):
+    def __init__(self, in_ch, out_ch, kernel_size, stride, padding='default', activation='prelu', norm='group', reflection_padding=3, cnn_kwargs=dict()):
         super(ConvLayer, self).__init__()
 
         # padding
-        self.pad = nn.ReflectionPad2d(kernel_size//2)
+        if padding == 'default':
+            self.pad = nn.ReflectionPad2d(kernel_size//2)
+        elif padding == 'reflection':
+            self.pad = nn.ReflectionPad2d(reflection_padding)
+        else:
+            self.pad = None
 
         # convolution
         self.conv_layer = nn.Conv2d(
-            in_ch, out_ch, kernel_size=kernel_size, stride=stride)
+            in_ch, out_ch, kernel_size=kernel_size, stride=stride, **cnn_kwargs)
 
         # activation
         if activation == 'prelu':
@@ -116,7 +121,9 @@ class ConvLayer(nn.Module):
             self.normalization = None
 
     def forward(self, x):
-        x = self.pad(x)
+        if self.pad is not None:
+            x = self.pad(x)
+
         x = self.conv_layer(x)
         if self.normalization is not None:
             x = self.normalization(x)
