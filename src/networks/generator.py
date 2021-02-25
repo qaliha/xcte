@@ -45,8 +45,9 @@ class Generator(nn.Module):
         super(Generator, self).__init__()
 
         model_conv_ = [PixelUnshuffle(2)]
-        model_conv_ += [nn.Upsample(scale_factor=2, mode='nearest')]
-        model_conv_ += [ConvLayer(12, n_feature, 3, 1,
+        # Train how to upscaling image
+        model_conv_ += [nn.ConvTranspose2d(12, n_feature, 2, stride=2)]
+        model_conv_ += [ConvLayer(n_feature, n_feature, 3, 1,
                                   activation='leaky', norm='none')]
 
         self.model_conv = nn.Sequential(*model_conv_)
