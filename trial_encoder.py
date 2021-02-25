@@ -3,8 +3,12 @@
 from src.networks.generator import Generator
 import torch.optim as optim
 import torch
-
+from torchsummary import summary
 from src.networks.encoder import Encoder, trial
+
+encoder = Encoder()
+
+summary(encoder, (3, 128, 128), 1)
 
 trial()
 exit()

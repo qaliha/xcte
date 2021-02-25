@@ -10,7 +10,7 @@ from src.utils.compression import _compress
 
 generator = Generator()
 
-summary(generator, (3, 256, 256), 1)
+summary(generator, (3, 128, 128), 1)
 # torch.save(generator, 'generator.pt')
 
 trial()
