@@ -83,7 +83,7 @@ class Generator(nn.Module):
 
 
 class ConvLayer(nn.Module):
-    def __init__(self, in_ch, out_ch, kernel_size, stride, padding='default', activation='prelu', norm='batch', reflection_padding=3, cnn_kwargs=dict()):
+    def __init__(self, in_ch, out_ch, kernel_size, stride, padding='default', activation='relu', norm='batch', reflection_padding=3, cnn_kwargs=dict()):
         super(ConvLayer, self).__init__()
 
         # padding
@@ -140,7 +140,7 @@ class ResidualLayer(nn.Module):
     def __init__(self, in_ch, out_ch, kernel_size, stride):
         super(ResidualLayer, self).__init__()
 
-        self.prelu = nn.PReLU()
+        self.relu = nn.ReLU()
         self.conv1 = ConvLayer(in_ch, out_ch, kernel_size,
                                stride)
 
@@ -153,7 +153,7 @@ class ResidualLayer(nn.Module):
         res = self.conv2(res)
 
         res = torch.add(res, identity_map)
-        out = self.prelu(res)
+        out = self.relu(res)
 
         return out
 

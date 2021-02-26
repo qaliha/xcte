@@ -41,6 +41,10 @@ transform_list = [transforms.ToTensor(),
                   transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
 
 transform = transforms.Compose(transform_list)
+
+model.Encoder.eval()
+model.Generator.eval()
+
 for image_name in image_filenames:
     # get input image
     input = load_img(image_dir + image_name, resize=False)
