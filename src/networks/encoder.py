@@ -16,7 +16,7 @@ class FeatureExtractor(nn.Module):
         model = [ConvLayer(3, n_features, 3, 1, norm='skip')]
         model += [ConvLayer(n_features, n_features, 3, 1, norm='skip')]
         # Ok for now remove this and copy the reference networks
-        model += [ConvLayer(n_features, n_features, 3, 1, norm='skip')]
+        # model += [ConvLayer(n_features, n_features, 3, 1, norm='skip')]
         model += [ConvLayer(n_features, 12, 2, 2,
                             norm='skip', activation='skip', padding='none')]
         model += [nn.PixelShuffle(2)]
