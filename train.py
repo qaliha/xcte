@@ -30,7 +30,12 @@ def load_checkpoint(model, opt_e, opt_g, opt_d, sch_e, sch_g, ech_d, filename='n
     logs = list()
     if os.path.isfile(filename):
         print("=> Loading checkpoint '{}'".format(filename))
-        state = torch.load(filename)
+        # state = torch.load(filename)
+        state = None
+        if torch.cuda.is_available():
+            state = torch.load(filename)
+        else:
+            state = torch.load(filename, map_location=torch.device('cpu'))
 
         start_epoch = state['epoch']
         logs = state['logs']
@@ -146,6 +151,9 @@ if __name__ == '__main__':
     if start_epoch > 1:
         start_epoch, model, opt_encoder, opt_generator, opt_discriminator, sch_encoder, sch_generator, sch_discriminator, train_logs_holder = load_checkpoint(
             model, opt_encoder, opt_generator, opt_discriminator, sch_encoder, sch_generator, sch_discriminator, "checkpoint/{}/net_{}_epoch_{}.pth".format(opt.dataset, opt.name, start_epoch-1))
+
+        print('Previous learning rate = {}'.format(
+            opt_generator.param_groups[0]['lr']))
 
         for state in opt_encoder.state.values():
             for k, v in state.items():
@@ -483,7 +491,7 @@ if __name__ == '__main__':
 
         local_train_logs_holder.append(model.Encoder.connection_weights.item())
 
-        update_learning_rate(sch_encoder, opt_encoder)
+        update_learning_rate(sch_encoder, opt_encoder, show=True)
         update_learning_rate(sch_generator, opt_generator)
         update_learning_rate(sch_discriminator, opt_discriminator)
 

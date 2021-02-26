@@ -77,3 +77,6 @@ for image_name in image_filenames:
     ), "checkpoints/{}/results/{}_{}_compressed_{}".format(opt.checkpoint, opt.name, opt.e, image_name))
     save_img_version(expanded_image.detach().squeeze(0).cpu(
     ), "checkpoints/{}/results/{}_{}_expanded_{}".format(opt.checkpoint, opt.name, opt.e, image_name))
+
+    torch.save(
+        model, "checkpoints/{}/model_{}_{}_expanded.pth".format(opt.checkpoint, opt.name, opt.e))
