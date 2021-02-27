@@ -183,6 +183,8 @@ if __name__ == '__main__':
     for epoch in range(start_epoch, num_epoch):
         # warming the parameters of encoder if --warm is provided
         if opt.warm and epoch == 1:
+            t_warm_losses = 0
+
             # Temporary disable gradient for connection weights
             model.Encoder.connection_weights.requires_grad = False
             if opt.debug:
@@ -207,6 +209,8 @@ if __name__ == '__main__':
                 # update weights
                 opt_encoder.step()
 
+                t_warm_losses += compression_losses.item()
+
                 if opt.debug:
                     save_img_version(encoded.detach().squeeze(
                         0).cpu(), 'interm/warm.png')
@@ -214,7 +218,8 @@ if __name__ == '__main__':
                     print(model.Encoder.connection_weights)
 
                 bar_enc.set_description(desc='itr: %d/%d [%3d/%3d] [L: %.6f] Warming Encoder' % (
-                    iteration, data_len, epoch, num_epoch - 1, compression_losses.item()
+                    iteration, data_len, epoch, num_epoch -
+                    1, t_warm_losses/max(1, iteration)
                 ))
 
             # Re enable after the warming
