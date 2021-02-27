@@ -1,4 +1,7 @@
+from generate_dataset import dir_exists, mkdir
 import os
+import shutil
+from os.path import join
 import argparse
 import random
 from numpy.core.numeric import Inf
@@ -108,8 +111,6 @@ if __name__ == '__main__':
     test_set = get_test_set(root_path + opt.dataset,
                             scale_n_crop=opt.noscale == False)
 
-    # compression_data_loader = DataLoader(
-    #     dataset=train_set, num_workers=4, batch_size=opt.batch_size, shuffle=True)
     training_data_loader = DataLoader(
         dataset=train_set, num_workers=4, batch_size=opt.batch_size, shuffle=True)
     testing_data_loader = DataLoader(
@@ -169,11 +170,14 @@ if __name__ == '__main__':
             for k, v in state.items():
                 if isinstance(v, torch.Tensor):
                     state[k] = v.to(device)
+    else:
+        # We remove the b folders here
+        train_dir_copy = join(root_path + opt.dataset, "train", "b")
+        if dir_exists(train_dir_copy):
+            shutil.rmtree(train_dir_copy)
+            print('Training compressed image has been delted')
 
-    # parameters_encoder_bt = list(model.Encoder.parameters())[0].clone()
-    # parameters_generator_bt = list(model.Generator.parameters())[0].clone()
-    # parameters_discriminator_bt = list(
-    #     model.Discriminator.parameters())[0].clone()
+            mkdir(train_dir_copy)
 
     num_epoch = opt.nepoch + 1
     for epoch in range(start_epoch, num_epoch):
@@ -192,26 +196,20 @@ if __name__ == '__main__':
                 # Train with random cropped image
                 image = batch[0+3].to(device)
 
-                # model.set_requires_grad(model.Encoder, True)
+                opt_encoder.zero_grad()  # make gradient zero
 
-                opt_encoder.zero_grad()
-
-                x = model.Encoder(image)
-
-                if opt.debug:
-                    save_img_version(x.detach().squeeze(
-                        0).cpu(), 'interm/warm.png')
-
-                # Normalize the output first
-                # x = normalize(x)
-                # x = model.Generator(x)
-
-                compression_losses = model.compression_loss(x, image)
-
+                # calculate gradients
+                encoded = model.Encoder(image)
+                compression_losses = model.compression_loss(encoded, image)
                 compression_losses.backward()
+
+                # update weights
                 opt_encoder.step()
 
                 if opt.debug:
+                    save_img_version(encoded.detach().squeeze(
+                        0).cpu(), 'interm/warm.png')
+
                     print(model.Encoder.connection_weights)
 
                 # assert(list(model.Encoder.parameters())[0].grad is not None)
@@ -227,16 +225,11 @@ if __name__ == '__main__':
 
         if opt.debug:
             print(model.Encoder.connection_weights)
-        # starting the epoch
 
         local_train_logs_holder = list()
 
         data_len = len(training_data_loader)
         bar = tqdm(enumerate(training_data_loader, 1), total=data_len)
-
-        # list of compressed image genrated by Encoder
-        # compressed_images = list()
-        # batched_images = list()
 
         model.Encoder.eval()
         for iteration, batch in bar:
@@ -244,39 +237,17 @@ if __name__ == '__main__':
             image = batch[0].to(device)
             compressed_path = batch[2]
 
-            # Convert to tensor first
-            # compressed = _compress(image, 3)
-
-            # model.set_requires_grad(model.Encoder, False)
-
             # Encoder [-1, 1], Compressed: [0, 1]
             encoder_output = model.Encoder(image)
-            # compressed_image = model.compress(prepare_for_compression_from_normalized_input(
-            #     encoder_output.detach().squeeze(0).cpu()))
 
             # Convert from [-1, 1] to [0, 1]
             compressed_image = (encoder_output + 1.) / 2.
             compressed_image = model.compress(compressed_image.detach())
 
-            # save_img_version(image.detach().squeeze(0).cpu(), 'interm/encoder.png')
-
-            # if iteration == 1:
-            #     save_img(image[0].squeeze(0), 'in.png')
-            #     save_img(compressed_image[0].squeeze(0), 'try.png')
-
-            # if opt.debug:
             for i in range(compressed_image.size(0)):
+                # Save the compressed image to local disk
+                # [-1., 1.] -> [0., 1.] -> *255
                 save_img(compressed_image[i, :, :, :], compressed_path[i])
-
-            # compressed_images.append(compressed_image)
-            # batched_images.append(image)
-
-            # Save the compressed image to local disk
-            # [-1., 1.] -> [0., 1.] -> *255
-
-            # Make sure not requires gradient
-            if opt.debug:
-                assert(compressed_image.requires_grad == False)
 
             bar.set_description(desc='itr: %d/%d [%3d/%3d] Compressing Image' % (
                 iteration, data_len, epoch, num_epoch - 1
@@ -295,33 +266,22 @@ if __name__ == '__main__':
         for iteration, batch in bar_ex:
             # try to expanding the image
             image = batch[0+3].to(device)
-            # assert(isinstance(batch[1], list) == False)
-
             compressed_image = batch[1+3].to(device)
-            # compressed_image = compressed_images[iteration-1]
 
-            # save_img_version(image.detach().squeeze(0).cpu(), 'interm/input.png')
-            if opt.debug:
-                save_img_version(compressed_image.detach().squeeze(
-                    0).cpu(), 'interm/encoder.png')
-
-            # Normalize compressed image from [0, 1] to [-1, 0]
-            # compressed_image = 2 * compressed_image  - 1
-
-            if opt.debug:
-                assert(compressed_image is not None)
-                assert(compressed_image.requires_grad == False)
+            # because gradients for generator disabled when training Encoder
+            # here we make generator can calculate gradients again!
+            model.set_requires_grad(model.Generator, True)
 
             # Train discriminator
-            # model.set_requires_grad(model.Discriminator, True)
+            # enable backprop for discriminator
+            model.set_requires_grad(model.Discriminator, True)
+            opt_discriminator.zero_grad()  # make D's gradients zero
 
+            # calculate gradients
             expanded = model.Generator(compressed_image)
 
-            opt_discriminator.zero_grad()
-
-            D_in = torch.cat((image, expanded.detach()), dim=1)
-
-            D_out, D_out_logits = model.Discriminator(D_in)
+            D_in = torch.cat((image, expanded), dim=1)
+            D_out, D_out_logits = model.Discriminator(D_in.detach())
             D_out = torch.squeeze(D_out)
             D_out_logits = torch.squeeze(D_out_logits)
 
@@ -331,31 +291,17 @@ if __name__ == '__main__':
             discriminator_loss = model.gan_loss_hf(
                 D_real, D_gen, D_real_logits, D_gen_logits, 'discriminator_loss')
 
-            if opt.debug:
-                assert(discriminator_loss.requires_grad == True)
-
-            # # Update discriminator
-            # fake_ab = model.Discriminator(
-            #     torch.cat((compressed_image, expanded), 1).detach())
-            # loss_d_fake = model.gan_loss(fake_ab, False)
-
-            # real_ab = model.Discriminator(
-            #     torch.cat((compressed_image, image), 1))
-            # loss_d_real = model.gan_loss(real_ab, True)
-
-            # discriminator_loss = (loss_d_fake + loss_d_real) * 0.5
-
             discriminator_loss.backward()
+            # update D's weights
             opt_discriminator.step()
 
-            # model.set_requires_grad(model.Generator, True)
-            # model.set_requires_grad(model.Discriminator, False)
+            # D's required not gradients when optimizing G
+            model.set_requires_grad(model.Discriminator, False)
+            opt_generator.zero_grad()  # make G's gradients zero
 
-            opt_generator.zero_grad()
-
-            D_in = torch.cat((image, expanded), dim=1)
-
-            D_out, D_out_logits = model.Discriminator(D_in)
+            # calculating gradients
+            D_out, D_out_logits = model.Discriminator(
+                torch.cat((image, expanded), dim=1))
             D_out = torch.squeeze(D_out)
             D_out_logits = torch.squeeze(D_out_logits)
 
@@ -366,47 +312,12 @@ if __name__ == '__main__':
                 D_real, D_gen, D_real_logits, D_gen_logits, 'generator_loss')
 
             decoder_losses = model.restruction_loss(expanded, image) * 0.5
-            # perceptual_losses = model.perceptual_loss(expanded, image, normalize=False)
             generator_losses = gan_losses * 0.1 + decoder_losses
 
-            if opt.debug:
-                assert(gan_losses.requires_grad == True)
-                assert(decoder_losses.requires_grad == True)
-
             generator_losses.backward()
+
+            # update G's weights
             opt_generator.step()
-
-            # model.set_requires_grad(model.Discriminator, False)
-
-            # Update generator
-            # fake_ab = model.Discriminator(
-            #     torch.cat((compressed_image, expanded), 1))
-
-            # gan_losses = model.gan_loss(fake_ab, True)
-            # decoder_losses = model.restruction_loss(expanded, image)
-
-            # perceptual_losses = model.perceptual_loss(expanded, image)
-
-            # assert(expanded.requires_grad)
-            # assert(image.requires_grad)
-
-            if opt.debug:
-                save_img_version(expanded.detach().squeeze(
-                    0).cpu(), 'interm/generated.png')
-                save_img_version(image.detach().squeeze(
-                    0).cpu(), 'interm/inputed.png')
-                save_img_version(compressed_image.detach().squeeze(
-                    0).cpu(), 'interm/compress.png')
-
-            # generator_losses = gan_losses + decoder_losses
-
-            # discriminator_loss, generator_losses = model.gd_training(compressed_image, image)
-
-            # Backward losses and step optimizer
-            # Zero gradient
-
-            # generator_losses.backward()
-            # opt_generator.step()
 
             t_discriminator_loss += discriminator_loss.item()
             t_generator_losses += generator_losses.item()
@@ -419,6 +330,13 @@ if __name__ == '__main__':
                     t_generator_losses/max(1, iteration))
 
             if opt.debug:
+                save_img_version(expanded.detach().squeeze(
+                    0).cpu(), 'interm/generated.png')
+                save_img_version(image.detach().squeeze(
+                    0).cpu(), 'interm/inputed.png')
+                save_img_version(compressed_image.detach().squeeze(
+                    0).cpu(), 'interm/compress.png')
+
                 if opt.warm:
                     assert(list(model.Encoder.parameters())
                            [1].grad is not None)
@@ -444,37 +362,20 @@ if __name__ == '__main__':
             # Get random cropped image
             image = batch[0+3].to(device)
 
-            # model.set_requires_grad(model.Generator, False)
-            # model.set_requires_grad(model.Encoder, True)
+            # G requires no gradient when optimizing E
+            model.set_requires_grad(model.Generator, False)
 
-            opt_encoder.zero_grad()
+            opt_encoder.zero_grad()  # set E's gradients to zero
 
-            x = model.Encoder(image)
-            # x = model.compress(x)
+            # calculate gradient for E
+            encoded = model.Encoder(image)
+            generated = model.Generator(encoded)
 
-            if opt.debug:
-                save_img_version(x.detach().squeeze(
-                    0).cpu(), 'interm/encoder.png')
-
-            # Normalize the output first
-            # x = normalize(x)
-            x = model.Generator(x)
-
-            compression_losses = model.compression_loss(x, image) * 0.5
-
-            if opt.debug:
-                save_img_version(image.detach().squeeze(
-                    0).cpu(), 'interm/inputed.png')
-                save_img_version(x.detach().squeeze(
-                    0).cpu(), 'interm/generated.png')
-
-            # compression_losses = model.e_train(image)
-
+            compression_losses = model.compression_loss(generated, image) * 0.5
             compression_losses.backward()
-            opt_encoder.step()
 
-            if opt.debug:
-                print(model.Encoder.connection_weights)
+            # update E's weights
+            opt_encoder.step()
 
             t_compression_losses += compression_losses.item()
 
@@ -482,33 +383,26 @@ if __name__ == '__main__':
                 local_train_logs_holder.append(
                     t_compression_losses/max(1, iteration))
 
-            # assert(list(model.Encoder.parameters())[0].grad is not None)
-
             bar_enc.set_description(desc='itr: %d/%d [%3d/%3d] [E: %.6f] Training Encoder' % (
                 iteration, data_len, epoch, num_epoch - 1,
                 t_compression_losses/max(1, iteration)
             ))
+
+            if opt.debug:
+                save_img_version(encoded.detach().squeeze(
+                    0).cpu(), 'interm/encoder.png')
+                save_img_version(image.detach().squeeze(
+                    0).cpu(), 'interm/inputed.png')
+                save_img_version(generated.detach().squeeze(
+                    0).cpu(), 'interm/generated.png')
+
+                print(model.Encoder.connection_weights)
 
         local_train_logs_holder.append(model.Encoder.connection_weights.item())
 
         update_learning_rate(sch_encoder, opt_encoder, show=True)
         update_learning_rate(sch_generator, opt_generator)
         update_learning_rate(sch_discriminator, opt_discriminator)
-
-        # parameters_generator_af = list(model.Generator.parameters())[0].clone()
-        # parameters_discriminator_af = list(
-        #     model.Discriminator.parameters())[0].clone()
-        # parameters_encoder_af = list(model.Encoder.parameters())[0].clone()
-
-        # assert(torch.all(torch.eq(parameters_generator_bt,
-        #                           parameters_generator_af)) == False)
-        # assert(torch.all(torch.eq(parameters_discriminator_bt,
-        #                           parameters_discriminator_af)) == False)
-        # assert(torch.all(torch.eq(parameters_encoder_bt,
-        #                           parameters_encoder_af)) == False)
-
-        # Check custom parameter
-        # print(model.Encoder.connection_weights)
 
         # Testing
         psnr_lists = list()
@@ -519,9 +413,6 @@ if __name__ == '__main__':
 
         model.Encoder.eval()
         model.Generator.eval()
-
-        # model.set_requires_grad(model.Encoder, False)
-        # model.set_requires_grad(model.Generator, False)
 
         count_inf = 0
 

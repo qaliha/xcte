@@ -75,6 +75,8 @@ for image_name in image_filenames:
 
     save_img_version(compressed_image_normalized.detach().squeeze(0).cpu(
     ), "checkpoints/{}/results/{}_{}_compressed_{}".format(opt.checkpoint, opt.name, opt.e, image_name))
+    save_img_version(encoder_output.detach().squeeze(0).cpu(
+    ), "checkpoints/{}/results/{}_{}_encoder_{}".format(opt.checkpoint, opt.name, opt.e, image_name))
     save_img_version(expanded_image.detach().squeeze(0).cpu(
     ), "checkpoints/{}/results/{}_{}_expanded_{}".format(opt.checkpoint, opt.name, opt.e, image_name))
 
