@@ -64,7 +64,7 @@ class Generator(nn.Module):
 
         model_deconv_ = [ConvLayer(n_feature, int(n_feature / 2), 3, 1)]
         model_deconv_ += [ConvLayer(int(n_feature / 2),
-                                    3, 3, 1, activation='tanh')]
+                                    3, 3, 1, activation='tanh', norm='skip')]
 
         self.model_deconv = nn.Sequential(*model_deconv_)
 
