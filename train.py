@@ -186,7 +186,7 @@ if __name__ == '__main__':
             t_warm_losses = 0
 
             # Temporary disable gradient for connection weights
-            model.Encoder.connection_weights.requires_grad = False
+            # model.Encoder.connection_weights.requires_grad = False
             if opt.debug:
                 print(model.Encoder.connection_weights)
 
@@ -223,7 +223,7 @@ if __name__ == '__main__':
                 ))
 
             # Re enable after the warming
-            model.Encoder.connection_weights.requires_grad = True
+            # model.Encoder.connection_weights.requires_grad = True
             if opt.debug:
                 print(model.Encoder.connection_weights)
 
