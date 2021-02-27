@@ -48,7 +48,7 @@ class Generator(nn.Module):
         # Train how to upscaling image
         model_conv_ += [nn.ConvTranspose2d(12, n_feature, 2, stride=2)]
         model_conv_ += [ConvLayer(n_feature, n_feature, 3, 1,
-                                  activation='leaky', norm='none')]
+                                  activation='leaky')]
 
         self.model_conv = nn.Sequential(*model_conv_)
 
@@ -60,11 +60,11 @@ class Generator(nn.Module):
 
         self.leaky = nn.LeakyReLU(negative_slope=0.2)
         self.model_resout = ConvLayer(
-            n_feature, n_feature, 3, 1, activation='skip', norm='none')
+            n_feature, n_feature, 3, 1, activation='skip')
 
         model_deconv_ = [ConvLayer(n_feature, int(n_feature / 2), 3, 1)]
         model_deconv_ += [ConvLayer(int(n_feature / 2),
-                                    3, 3, 1, activation='tanh', norm='none')]
+                                    3, 3, 1, activation='tanh')]
 
         self.model_deconv = nn.Sequential(*model_deconv_)
 
@@ -73,7 +73,7 @@ class Generator(nn.Module):
 
         residual = y
         res = self.model_resblocks(y)
-        res = self.model_resout(res)
+        res = self.bn(self.model_resout(res))
         res = torch.add(res, residual)
         y = self.leaky(res)
 
@@ -83,7 +83,7 @@ class Generator(nn.Module):
 
 
 class ConvLayer(nn.Module):
-    def __init__(self, in_ch, out_ch, kernel_size, stride, padding='default', activation='prelu', norm='channel', reflection_padding=3, cnn_kwargs=dict()):
+    def __init__(self, in_ch, out_ch, kernel_size, stride, padding='default', activation='prelu', norm='batch', reflection_padding=3, cnn_kwargs=dict()):
         super(ConvLayer, self).__init__()
 
         # padding
