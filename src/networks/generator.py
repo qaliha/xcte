@@ -73,7 +73,7 @@ class Generator(nn.Module):
 
         residual = y
         res = self.model_resblocks(y)
-        res = self.bn(self.model_resout(res))
+        res = self.model_resout(res)
         res = torch.add(res, residual)
         y = self.leaky(res)
 
