@@ -200,7 +200,8 @@ if __name__ == '__main__':
 
                 # calculate gradients
                 encoded = model.Encoder(image)
-                compression_losses = model.compression_loss(encoded, image)
+                compression_losses = model.compression_loss(
+                    encoded, image) * 0.5
                 compression_losses.backward()
 
                 # update weights
@@ -212,10 +213,8 @@ if __name__ == '__main__':
 
                     print(model.Encoder.connection_weights)
 
-                # assert(list(model.Encoder.parameters())[0].grad is not None)
-
-                bar_enc.set_description(desc='itr: %d/%d [%3d/%3d] Warming Encoder' % (
-                    iteration, data_len, epoch, num_epoch - 1
+                bar_enc.set_description(desc='itr: %d/%d [%3d/%3d] [L: %.6f] Warming Encoder' % (
+                    iteration, data_len, epoch, num_epoch - 1, compression_losses.item()
                 ))
 
             # Re enable after the warming
