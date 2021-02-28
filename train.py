@@ -136,12 +136,9 @@ if __name__ == '__main__':
     summary(model.Encoder, single_example, opt.batch_size)
     summary(model.Generator, single_example, opt.batch_size)
 
-    opt_encoder = optim.Adam(model.Encoder.parameters(),
-                             lr=opt.lr, betas=(0.5, 0.999))
-    opt_generator = optim.Adam(
-        model.Generator.parameters(), lr=opt.lr, betas=(0.5, 0.999))
-    opt_discriminator = optim.Adam(
-        model.Discriminator.parameters(), lr=opt.lr, betas=(0.5, 0.999))
+    opt_encoder = optim.Adam(model.Encoder.parameters(), lr=opt.lr)
+    opt_generator = optim.Adam(model.Generator.parameters(), lr=opt.lr)
+    opt_discriminator = optim.Adam(model.Discriminator.parameters(), lr=opt.lr)
 
     sch_encoder = get_scheduler(opt_encoder, opt)
     sch_generator = get_scheduler(opt_generator, opt)
