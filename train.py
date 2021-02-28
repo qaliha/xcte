@@ -1,5 +1,6 @@
 from generate_dataset import dir_exists, mkdir
 import os
+import math
 import shutil
 from os.path import join
 import argparse
@@ -195,7 +196,7 @@ if __name__ == '__main__':
 
             model.Encoder.train()
             for iteration, batch in bar_enc:
-                if iteration > 5000:
+                if iteration > math.floor(data_len * .4):
                     print("\nHas been limited")
                     break
 
@@ -230,7 +231,7 @@ if __name__ == '__main__':
             # model.Encoder.connection_weights.requires_grad = True
             # if opt.debug:
             print(
-                f'Connection weights after training: {model.Encoder.connection_weights}')
+                f'Connection weights after training: {model.Encoder.connection_weights.item()}')
 
         if opt.debug:
             print(model.Encoder.connection_weights)
@@ -406,6 +407,9 @@ if __name__ == '__main__':
                     0).cpu(), 'interm/generated.png')
 
                 print(model.Encoder.connection_weights)
+
+        print(
+            f'Connection weights after training: {model.Encoder.connection_weights.item()}')
 
         local_train_logs_holder.append(model.Encoder.connection_weights.item())
 
