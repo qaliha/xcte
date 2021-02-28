@@ -224,8 +224,9 @@ if __name__ == '__main__':
 
             # Re enable after the warming
             # model.Encoder.connection_weights.requires_grad = True
-            if opt.debug:
-                print(model.Encoder.connection_weights)
+            # if opt.debug:
+            print(
+                f'Connection weights after training: {model.Encoder.connection_weights}')
 
         if opt.debug:
             print(model.Encoder.connection_weights)
