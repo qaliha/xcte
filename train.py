@@ -193,9 +193,9 @@ if __name__ == '__main__':
 
             model.Encoder.train()
             for iteration, batch in bar_enc:
-                if iteration > math.floor(data_len * .4):
-                    print("\nHas been limited")
-                    break
+                # if iteration > math.floor(data_len * .4):
+                #     print("\nHas been limited")
+                #     break
 
                 # Train with random cropped image
                 image = batch[0+3].to(device)
