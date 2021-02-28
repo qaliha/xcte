@@ -195,6 +195,10 @@ if __name__ == '__main__':
 
             model.Encoder.train()
             for iteration, batch in bar_enc:
+                if iteration > 2000:
+                    print("Has been limited")
+                    break
+
                 # Train with random cropped image
                 image = batch[0+3].to(device)
 
