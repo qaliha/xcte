@@ -244,9 +244,9 @@ if __name__ == '__main__':
                     ))
 
             if opt.tensorboard:
-                writer.text(
+                writer.add_text(
                     'logs', f'Warming loss: {t_warm_losses/max(1, data_len)}')
-                writer.text(
+                writer.add_text(
                     'logs', f'Connection weights after training: {model.Encoder.connection_weights.item()}')
 
             # Re enable after the warming
@@ -265,7 +265,7 @@ if __name__ == '__main__':
                    total=data_len, disable=opt.silent)
 
         if opt.tensorboard:
-            writer.text('logs', f'Epoch {epoch} - Compressing Image')
+            writer.add_text('logs', f'Epoch {epoch} - Compressing Image')
 
         model.Encoder.eval()
         for iteration, batch in bar:
@@ -299,7 +299,7 @@ if __name__ == '__main__':
         t_dec_losses = 0
 
         if opt.tensorboard:
-            writer.text('logs', f'Epoch {epoch} - Training Generator')
+            writer.add_text('logs', f'Epoch {epoch} - Training Generator')
 
         model.Generator.train()
         model.Discriminator.train()
@@ -404,7 +404,7 @@ if __name__ == '__main__':
                 ))
 
         if opt.tensorboard:
-            writer.text('logs', f'Epoch {epoch} - Training Encoder')
+            writer.add_text('logs', f'Epoch {epoch} - Training Encoder')
 
         bar_enc = tqdm(enumerate(training_data_loader, 1),
                        total=data_len, disable=opt.silent)
@@ -462,7 +462,7 @@ if __name__ == '__main__':
                 print(model.Encoder.connection_weights)
 
         if opt.tensorboard:
-            writer.text(
+            writer.add_text(
                 'logs', f'Connection weights after training: {model.Encoder.connection_weights.item()}')
 
         print(
@@ -487,7 +487,7 @@ if __name__ == '__main__':
         count_inf = 0
 
         if opt.tensorboard:
-            writer.text('logs', f'Epoch {epoch} - Validation Model')
+            writer.add_text('logs', f'Epoch {epoch} - Validation Model')
 
         data_len_test = len(testing_data_loader)
         bar_test = tqdm(enumerate(testing_data_loader, 1),
