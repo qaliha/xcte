@@ -2,7 +2,6 @@ from torch.optim import lr_scheduler
 
 
 def get_scheduler(optimizer, opt):
-    # scheduler = lr_scheduler.StepLR(optimizer, step_size=opt.lr_decay_iters, gamma=0.1)
     def lambda_rule(epoch):
         lr_l = 1.0 - max(0, epoch - 2) / float(opt.nepoch - 2)
         return lr_l

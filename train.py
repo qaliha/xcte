@@ -1,6 +1,17 @@
+import warnings
+from tqdm import tqdm
+from loader_data import get_test_set, get_training_set
+from src.utils.metric import psnr, ssim
+from src.utils.tensor import normalize_input_from_normalied, prepare_for_compression_from_normalized_input, save_img, save_img_version, tensor2img
+from src.scheduler import get_scheduler, update_learning_rate
+from src.model import Model
+import numpy as np
+from torch.utils.data import DataLoader
+from torch.autograd import Variable
+import torch.optim as optim
+from torch.utils.tensorboard import SummaryWriter
 from generate_dataset import dir_exists, mkdir
 import os
-import math
 import shutil
 from os.path import join
 import argparse
@@ -8,23 +19,10 @@ import random
 from numpy.core.numeric import Inf
 from torchsummary import summary
 import torch
+import tf
 import torchvision.transforms as transforms
-import torch.optim as optim
-from torch.autograd import Variable
-from torch.utils.data import DataLoader
+import torchvision
 
-import numpy as np
-
-from src.model import Model
-from src.scheduler import get_scheduler, update_learning_rate
-from src.utils.tensor import normalize_input_from_normalied, prepare_for_compression_from_normalized_input, save_img, save_img_version, tensor2img
-from src.utils.metric import psnr, ssim
-
-# from loader import normalize
-from loader_data import get_test_set, get_training_set
-from tqdm import tqdm
-
-import warnings
 
 warnings.filterwarnings("ignore")
 
@@ -60,17 +58,21 @@ def load_checkpoint(model, opt_e, opt_g, opt_d, sch_e, sch_g, ech_d, filename='n
 
 
 if __name__ == '__main__':
+
+    writer = SummaryWriter()
+
     # Training settings
     parser = argparse.ArgumentParser(description='Compressing')
     parser.add_argument('--dataset', required=True, help='dataset path')
     parser.add_argument('--bit', required=True,
                         type=int, help='compression bit')
     parser.add_argument('--name', required=True, help='training name')
+
     parser.add_argument('--epoch_count', type=int, default=1,
                         help='the starting epoch count')
     parser.add_argument('--nepoch', type=int, default=50, help='# of epoch')
-    # parser.add_argument('--niter', type=int, default=100, help='# of iter at starting learning rate')
-    # parser.add_argument('--niter_decay', type=int, default=100, help='# of iter to linearly decay learning rate to zero')
+
+    # Training
     parser.add_argument('--commit', action='store_true',
                         help='commit mode? checkpoint will replace and save all models configuration for retraining')
     parser.add_argument('--warm', action='store_true',
@@ -79,20 +81,29 @@ if __name__ == '__main__':
     parser.add_argument('--debug', action='store_true', help='use debug mode?')
     parser.add_argument('--noscale', action='store_true',
                         help='use scale and random crop?')
+
     parser.add_argument('--epochsave', type=int, default=50, help='test')
+
     parser.add_argument('--batch_size', type=int,
                         default=8, help='training batch size')
     parser.add_argument('--test_batch_size', type=int,
                         default=1, help='testing batch size')
 
+    # Learning parameters
     parser.add_argument('--a', type=float, default=.8,
                         help='initial alpha gate for encoder')
     parser.add_argument('--lr', type=float, default=0.0002,
                         help='initial learning rate for adam')
-    parser.add_argument('--lr_decay_iters', type=int, default=10,
-                        help='multiply by a gamma every lr_decay_iters iterations')
     parser.add_argument('--seed', type=int, default=123,
                         help='random seed to use')
+
+    # Tensorboard parameters
+    parser.add_argument('--tensorboard', action='store_true',
+                        help='use tensorboard?')
+    parser.add_argument(
+        '--hookbin', help='hookbin url for capturing tensorboard url')
+    parser.add_argument('--silent', action='store_true',
+                        help='silent the tqdm output')
 
     opt = parser.parse_args()
 
@@ -118,6 +129,12 @@ if __name__ == '__main__':
         dataset=test_set, num_workers=4, batch_size=opt.test_batch_size, shuffle=False)
 
     device = torch.device("cuda:0" if opt.cuda else "cpu")
+
+    tb_process = None
+    ngrok_process = None
+    if opt.tensorboard:
+        print('===> Running tensorboard')
+        tb_process, ngrok_process = tf.launch_tensorboard(opt.hookbin)
 
     print('===> Building models')
 
@@ -189,7 +206,8 @@ if __name__ == '__main__':
                 print(model.Encoder.connection_weights)
 
             data_len = len(training_data_loader)
-            bar_enc = tqdm(enumerate(training_data_loader, 1), total=data_len)
+            bar_enc = tqdm(enumerate(training_data_loader, 1),
+                           total=data_len, disable=opt.silent)
 
             model.Encoder.train()
             for iteration, batch in bar_enc:
@@ -219,10 +237,17 @@ if __name__ == '__main__':
 
                     print(model.Encoder.connection_weights)
 
-                bar_enc.set_description(desc='itr: %d/%d [%3d/%3d] [L: %.6f] Warming Encoder' % (
-                    iteration, data_len, epoch, num_epoch -
-                    1, t_warm_losses/max(1, iteration)
-                ))
+                if not opt.silent:
+                    bar_enc.set_description(desc='itr: %d/%d [%3d/%3d] [L: %.6f] Warming Encoder' % (
+                        iteration, data_len, epoch, num_epoch -
+                        1, t_warm_losses/max(1, iteration)
+                    ))
+
+            if opt.tensorboard:
+                writer.text(
+                    'logs', f'Warming loss: {t_warm_losses/max(1, data_len)}')
+                writer.text(
+                    'logs', f'Connection weights after training: {model.Encoder.connection_weights.item()}')
 
             # Re enable after the warming
             model.Encoder.connection_weights.requires_grad = True
@@ -236,7 +261,11 @@ if __name__ == '__main__':
         local_train_logs_holder = list()
 
         data_len = len(training_data_loader)
-        bar = tqdm(enumerate(training_data_loader, 1), total=data_len)
+        bar = tqdm(enumerate(training_data_loader, 1),
+                   total=data_len, disable=opt.silent)
+
+        if opt.tensorboard:
+            writer.text('logs', f'Epoch {epoch} - Compressing Image')
 
         model.Encoder.eval()
         for iteration, batch in bar:
@@ -256,16 +285,21 @@ if __name__ == '__main__':
                 # [-1., 1.] -> [0., 1.] -> *255
                 save_img(compressed_image[i, :, :, :], compressed_path[i])
 
-            bar.set_description(desc='itr: %d/%d [%3d/%3d] Compressing Image' % (
-                iteration, data_len, epoch, num_epoch - 1
-            ))
+            if not opt.silent:
+                bar.set_description(desc='itr: %d/%d [%3d/%3d] Compressing Image' % (
+                    iteration, data_len, epoch, num_epoch - 1
+                ))
 
         data_len = len(training_data_loader)
-        bar_ex = tqdm(enumerate(training_data_loader, 1), total=data_len)
+        bar_ex = tqdm(enumerate(training_data_loader, 1),
+                      total=data_len, disable=opt.silent)
 
         t_discriminator_loss = 0
         t_generator_losses = 0
         t_dec_losses = 0
+
+        if opt.tensorboard:
+            writer.text('logs', f'Epoch {epoch} - Training Generator')
 
         model.Generator.train()
         model.Discriminator.train()
@@ -336,6 +370,16 @@ if __name__ == '__main__':
                 local_train_logs_holder.append(
                     t_generator_losses/max(1, iteration))
 
+            if opt.tensorboard and iteration % 100 == 0:
+                # Writing live loss
+                num = ((epoch - 1) * data_len) + iteration
+                writer.add_scalar('LiveLoss/Discriminator', t_discriminator_loss /
+                                  max(1, iteration), num)
+                writer.add_scalar('LiveLoss/Generator', t_generator_losses /
+                                  max(1, iteration), num)
+                writer.add_scalar('LiveLoss/Decoder', t_dec_losses /
+                                  max(1, iteration), num)
+
             if opt.debug:
                 save_img_version(expanded.detach().squeeze(
                     0).cpu(), 'interm/generated.png')
@@ -351,14 +395,19 @@ if __name__ == '__main__':
                 assert(list(model.Discriminator.parameters())
                        [0].grad is not None)
 
-            bar_ex.set_description(desc='itr: %d/%d [%3d/%3d] [D: %.6f] [G: %.6f] [Dec: %.6f] Training Generator' % (
-                iteration, data_len, epoch, num_epoch - 1,
-                t_discriminator_loss/max(1, iteration),
-                t_generator_losses/max(1, iteration),
-                t_dec_losses/max(1, iteration)
-            ))
+            if not opt.silent:
+                bar_ex.set_description(desc='itr: %d/%d [%3d/%3d] [D: %.6f] [G: %.6f] [Dec: %.6f] Training Generator' % (
+                    iteration, data_len, epoch, num_epoch - 1,
+                    t_discriminator_loss/max(1, iteration),
+                    t_generator_losses/max(1, iteration),
+                    t_dec_losses/max(1, iteration)
+                ))
 
-        bar_enc = tqdm(enumerate(training_data_loader, 1), total=data_len)
+        if opt.tensorboard:
+            writer.text('logs', f'Epoch {epoch} - Training Encoder')
+
+        bar_enc = tqdm(enumerate(training_data_loader, 1),
+                       total=data_len, disable=opt.silent)
 
         t_compression_losses = 0
 
@@ -390,10 +439,17 @@ if __name__ == '__main__':
                 local_train_logs_holder.append(
                     t_compression_losses/max(1, iteration))
 
-            bar_enc.set_description(desc='itr: %d/%d [%3d/%3d] [E: %.6f] Training Encoder' % (
-                iteration, data_len, epoch, num_epoch - 1,
-                t_compression_losses/max(1, iteration)
-            ))
+            if not opt.silent:
+                bar_enc.set_description(desc='itr: %d/%d [%3d/%3d] [E: %.6f] Training Encoder' % (
+                    iteration, data_len, epoch, num_epoch - 1,
+                    t_compression_losses/max(1, iteration)
+                ))
+
+            if opt.tensorboard and iteration % 100 == 0:
+                # Writing live loss
+                num = ((epoch - 1) * data_len) + iteration
+                writer.add_scalar('LiveLoss/Encoder', t_compression_losses /
+                                  max(1, iteration), num)
 
             if opt.debug:
                 save_img_version(encoded.detach().squeeze(
@@ -404,6 +460,10 @@ if __name__ == '__main__':
                     0).cpu(), 'interm/generated.png')
 
                 print(model.Encoder.connection_weights)
+
+        if opt.tensorboard:
+            writer.text(
+                'logs', f'Connection weights after training: {model.Encoder.connection_weights.item()}')
 
         print(
             f'Connection weights after training: {model.Encoder.connection_weights.item()}')
@@ -426,8 +486,12 @@ if __name__ == '__main__':
 
         count_inf = 0
 
+        if opt.tensorboard:
+            writer.text('logs', f'Epoch {epoch} - Validation Model')
+
         data_len_test = len(testing_data_loader)
-        bar_test = tqdm(enumerate(testing_data_loader, 1), total=data_len_test)
+        bar_test = tqdm(enumerate(testing_data_loader, 1),
+                        total=data_len_test, disable=opt.silent)
         r_intermedient = random.randint(0, data_len_test)
         for iteration, batch in bar_test:
             input = batch[0+3].to(device)
@@ -457,12 +521,15 @@ if __name__ == '__main__':
                 if not os.path.exists("interm"):
                     os.mkdir("interm")
 
-                save_img_version(input.detach().squeeze(
-                    0).cpu(), 'interm/{}_input.png'.format(epoch))
-                save_img_version(compressed_image_normalized.detach().squeeze(
-                    0).cpu(), 'interm/{}_compressed.png'.format(epoch))
-                save_img_version(expanded_image.detach().squeeze(
-                    0).cpu(), 'interm/{}_expanded.png'.format(epoch))
+                image_tensor = torchvision.utils.make_grid(
+                    [input.detach().squeeze(0), compressed_image.detach().squeeze(0), expanded_image.detach().squeeze(0)])
+
+                if opt.tensorboard:
+                    writer.add_image('testing_image_sample',
+                                     image_tensor, epoch)
+
+                save_img_version(image_tensor.cpu(),
+                                 'interm/{}.png'.format(epoch))
 
             input_img = normalize_input_from_normalied(
                 input.detach().squeeze(0).cpu())
@@ -489,16 +556,37 @@ if __name__ == '__main__':
             psnr_enc_lists.append(_tmp_psnr_compressed)
             ssim_enc_lists.append(_tmp_ssim_compressed)
 
-            bar_test.set_description(desc='itr: %d/%d [%3d/%3d] C[P: %.4fdb S: %.4f] E[P: %.4fdb S: %.4f] Testing Image' % (
-                iteration, data_len_test, epoch, num_epoch - 1,
-                _tmp_psnr_compressed, _tmp_ssim_compressed,
-                _tmp_psnr_expanded, _tmp_ssim_expanded
-            ))
+            if not opt.silent:
+                bar_test.set_description(desc='itr: %d/%d [%3d/%3d] C[P: %.4fdb S: %.4f] E[P: %.4fdb S: %.4f] Testing Image' % (
+                    iteration, data_len_test, epoch, num_epoch - 1,
+                    _tmp_psnr_compressed, _tmp_ssim_compressed,
+                    _tmp_psnr_expanded, _tmp_ssim_expanded
+                ))
 
         mean_compressiong_psnr = np.ma.masked_invalid(psnr_enc_lists).mean()
         mean_compressing_ssim = np.ma.masked_invalid(ssim_enc_lists).mean()
         mean_expanding_psnr = np.ma.masked_invalid(psnr_lists).mean()
         mean_expanding_ssim = np.ma.masked_invalid(ssim_lists).mean()
+
+        if opt.tensorboard:
+            # Writing loss per epoch
+            writer.add_scalar('Loss/Discriminator',
+                              local_train_logs_holder[0], epoch)
+            writer.add_scalar('Loss/Generator',
+                              local_train_logs_holder[1], epoch)
+            writer.add_scalar(
+                'Loss/Encoder', local_train_logs_holder[2], epoch)
+            writer.add_scalar('Parameters/Gate',
+                              local_train_logs_holder[3], epoch)
+
+            writer.add_scalar('Metrics/Compression/PSNR',
+                              mean_compressiong_psnr, epoch)
+            writer.add_scalar('Metrics/Compression/SSIM',
+                              mean_compressing_ssim, epoch)
+            writer.add_scalar('Metrics/Expansion/PSNR',
+                              mean_expanding_psnr, epoch)
+            writer.add_scalar('Metrics/Expansion/SSIM',
+                              mean_expanding_ssim, epoch)
 
         print('[%3d/%3d] C[P: %.4fdb S: %.4f] E[P: %.4fdb S: %.4f] [Inf: %d] <-- Average' % (
             epoch, num_epoch - 1,
