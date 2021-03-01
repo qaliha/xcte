@@ -10,7 +10,7 @@ import time
 import psutil
 
 
-def launch_tensorboard(hookbin_url=None):
+def launch_tensorboard(hookbin_url=None, auth_token=None):
     tb_process, ngrok_process = None, None
 
     # Launch TensorBoard
@@ -26,6 +26,11 @@ def launch_tensorboard(hookbin_url=None):
 
     # Create ngrok tunnel and print its public URL
     if not is_process_running('ngrok'):
+        if auth_token is not None:
+            # run auth token
+            run_cmd_async_unsafe(f'./ngrok authtoken {auth_token}')
+            time.sleep(5)
+
         ngrok_process = run_cmd_async_unsafe('./ngrok http 6006')
         time.sleep(5)  # Waiting for ngrok to start the tunnel
 

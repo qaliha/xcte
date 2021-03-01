@@ -102,6 +102,8 @@ if __name__ == '__main__':
                         help='use tensorboard?')
     parser.add_argument(
         '--hookbin', help='hookbin url for capturing tensorboard url')
+    parser.add_argument(
+        '--auth_token', help='auth token for ngrok for limits')
     parser.add_argument('--silent', action='store_true',
                         help='silent the tqdm output')
 
@@ -134,7 +136,8 @@ if __name__ == '__main__':
     ngrok_process = None
     if opt.tensorboard:
         print('===> Running tensorboard')
-        tb_process, ngrok_process = tf.launch_tensorboard(opt.hookbin)
+        tb_process, ngrok_process = tf.launch_tensorboard(
+            opt.hookbin, auth_token=opt.auth_token)
 
     print('===> Building models')
 
@@ -526,10 +529,10 @@ if __name__ == '__main__':
 
                 if opt.tensorboard:
                     # Change from [-1, 1] to [0, 1]
-                    image_tensor = (image_tensor + 1.) / 2.
+                    image_tensor_optimizer = (image_tensor + 1.) / 2.
 
                     writer.add_image('testing_image_sample',
-                                     image_tensor, epoch)
+                                     image_tensor_optimizer, epoch)
 
                 save_img_version(image_tensor.cpu(),
                                  'interm/{}.png'.format(epoch))
