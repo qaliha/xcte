@@ -16,7 +16,7 @@ import shutil
 from os.path import join
 import argparse
 import random
-from numpy.core.numeric import Inf
+from numpy.core.numeric import Inf, Infinity
 from torchsummary import summary
 import torch
 import tf
@@ -30,6 +30,8 @@ warnings.filterwarnings("ignore")
 def load_checkpoint(model, opt_e, opt_g, opt_d, sch_e, sch_g, ech_d, filename='net.pth'):
     start_epoch = 0
     logs = list()
+    max_ssim = -Infinity
+    max_ssim_epoch = 0
     if os.path.isfile(filename):
         print("=> Loading checkpoint '{}'".format(filename))
         # state = torch.load(filename)
@@ -54,7 +56,7 @@ def load_checkpoint(model, opt_e, opt_g, opt_d, sch_e, sch_g, ech_d, filename='n
         print("=> No checkpoint found at '{}'".format(filename))
         exit()
 
-    return start_epoch, model, opt_e, opt_g, opt_d, sch_e, sch_g, ech_d, logs
+    return start_epoch, model, opt_e, opt_g, opt_d, sch_e, sch_g, ech_d, logs, max_ssim, max_ssim_epoch
 
 
 if __name__ == '__main__':
@@ -169,8 +171,12 @@ if __name__ == '__main__':
     train_logs_holder = list()
 
     start_epoch = opt.epoch_count
+
+    max_ssim = -Infinity
+    max_ssim_epoch = 0
+
     if start_epoch > 1:
-        start_epoch, model, opt_encoder, opt_generator, opt_discriminator, sch_encoder, sch_generator, sch_discriminator, train_logs_holder = load_checkpoint(
+        start_epoch, model, opt_encoder, opt_generator, opt_discriminator, sch_encoder, sch_generator, sch_discriminator, train_logs_holder, max_ssim, max_ssim_epoch = load_checkpoint(
             model, opt_encoder, opt_generator, opt_discriminator, sch_encoder, sch_generator, sch_discriminator, "checkpoint/{}/net_{}_epoch_{}.pth".format(opt.dataset, opt.name, start_epoch-1))
 
         print('Previous learning rate = {}'.format(
@@ -646,8 +652,29 @@ if __name__ == '__main__':
                 'scheduler_e': sch_encoder.state_dict() if opt.commit else None,
                 'scheduler_g': sch_generator.state_dict() if opt.commit else None,
                 'scheduler_d': sch_discriminator.state_dict() if opt.commit else None,
-                'logs': train_logs_holder
+                'logs': train_logs_holder,
+                'max_ssim': max_ssim,
+                'max_ssim_epoch': max_ssim_epoch,
             }
+
+            if mean_expanding_ssim >= max_ssim:
+                notice = f"Found new max SSIM on epoch {epoch}. {max_ssim} -> {mean_expanding_ssim}"
+                writer.add_text(notice)
+                print(notice)
+
+                max_ssim = mean_expanding_psnr
+                max_ssim_epoch = epoch
+
+                state['max_ssim'] = max_ssim
+                state['max_ssim_epoch'] = max_ssim_epoch
+
+                # are old file exist
+                modelmax_old_path = "checkpoint/{}/net_max.pth".format(
+                    opt.dataset)
+                if os.path.exists(modelmax_old_path):
+                    os.remove(modelmax_old_path)
+
+                torch.save(state, modelmax_old_path)
 
             torch.save(state, model_out_path)
             print("Checkpoint saved to {} as {}".format(
