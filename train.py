@@ -68,6 +68,8 @@ if __name__ == '__main__':
                         type=int, help='compression bit')
     parser.add_argument('--name', required=True, help='training name')
 
+    parser.add_argument('--epoch_limit', type=int, default=0,
+                        help='current run limitation (0 for no limit)')
     parser.add_argument('--epoch_count', type=int, default=1,
                         help='the starting epoch count')
     parser.add_argument('--nepoch', type=int, default=50, help='# of epoch')
@@ -199,6 +201,10 @@ if __name__ == '__main__':
 
     num_epoch = opt.nepoch + 1
     for epoch in range(start_epoch, num_epoch):
+        if opt.epoch_limit > 0 and epoch > opt.epoch_limit:
+            print('Process stopped because has react limit')
+            break
+
         # warming the parameters of encoder if --warm is provided
         if opt.warm and epoch == 1:
             t_warm_losses = 0
