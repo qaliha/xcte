@@ -1,7 +1,7 @@
 from urllib.request import urlopen
 from io import BytesIO
 from zipfile import ZipFile
-from subprocess import Popen
+from subprocess import Popen, DEVNULL
 from os import chmod
 from os.path import isfile
 import json
@@ -51,7 +51,7 @@ def download_and_unzip(url, extract_to='.'):
 
 
 def run_cmd_async_unsafe(cmd):
-    return Popen(cmd, shell=True)
+    return Popen(cmd, shell=True, stderr=DEVNULL, stdout=DEVNULL)
 
 
 def is_process_running(process_name):
