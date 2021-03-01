@@ -507,8 +507,6 @@ if __name__ == '__main__':
             compressed_image = tensor2img(compressed_image)
             compressed_image = transforms.ToTensor()(compressed_image)
 
-            compressed_image_cuda = compressed_image.to(device)
-
             # then normalize the image
             compressed_image_normalized = transforms.Normalize(
                 (0.5, 0.5, 0.5), (0.5, 0.5, 0.5))(compressed_image)
@@ -524,9 +522,12 @@ if __name__ == '__main__':
                     os.mkdir("interm")
 
                 image_tensor = torchvision.utils.make_grid(
-                    [input.detach().squeeze(0), compressed_image_cuda.detach().squeeze(0), expanded_image.detach().squeeze(0)])
+                    [input.detach().squeeze(0), compressed_image_normalized.detach().squeeze(0), expanded_image.detach().squeeze(0)])
 
                 if opt.tensorboard:
+                    # Change from [-1, 1] to [0, 1]
+                    image_tensor = (image_tensor + 1.) / 2.
+
                     writer.add_image('testing_image_sample',
                                      image_tensor, epoch)
 
