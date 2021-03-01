@@ -268,7 +268,8 @@ if __name__ == '__main__':
                    total=data_len, disable=opt.silent)
 
         if opt.tensorboard:
-            writer.add_text('logs', f'Epoch {epoch} - Compressing Image')
+            writer.add_text(
+                'logs', f'Epoch {epoch} - Compressing Image', epoch)
 
         model.Encoder.eval()
         for iteration, batch in bar:
@@ -302,7 +303,8 @@ if __name__ == '__main__':
         t_dec_losses = 0
 
         if opt.tensorboard:
-            writer.add_text('logs', f'Epoch {epoch} - Training Generator')
+            writer.add_text(
+                'logs', f'Epoch {epoch} - Training Generator', epoch)
 
         model.Generator.train()
         model.Discriminator.train()
@@ -407,7 +409,7 @@ if __name__ == '__main__':
                 ))
 
         if opt.tensorboard:
-            writer.add_text('logs', f'Epoch {epoch} - Training Encoder')
+            writer.add_text('logs', f'Epoch {epoch} - Training Encoder', epoch)
 
         bar_enc = tqdm(enumerate(training_data_loader, 1),
                        total=data_len, disable=opt.silent)
@@ -466,7 +468,7 @@ if __name__ == '__main__':
 
         if opt.tensorboard:
             writer.add_text(
-                'logs', f'Connection weights after training: {model.Encoder.connection_weights.item()}')
+                'logs', f'Connection weights after training: {model.Encoder.connection_weights.item()}', epoch)
 
         print(
             f'Connection weights after training: {model.Encoder.connection_weights.item()}')
@@ -490,7 +492,7 @@ if __name__ == '__main__':
         count_inf = 0
 
         if opt.tensorboard:
-            writer.add_text('logs', f'Epoch {epoch} - Validation Model')
+            writer.add_text('logs', f'Epoch {epoch} - Validation Model', epoch)
 
         data_len_test = len(testing_data_loader)
         bar_test = tqdm(enumerate(testing_data_loader, 1),
