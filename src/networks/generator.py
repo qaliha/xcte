@@ -46,8 +46,8 @@ class Generator(nn.Module):
 
         model_conv_ = [PixelUnshuffle(2)]
         # Train how to upscaling image
-        model_conv_ += [nn.ConvTranspose2d(12, n_feature, 2, stride=2)]
-        model_conv_ += [ConvLayer(n_feature, n_feature,
+        model_conv_ += [ConvTransposeLayer(12, 12, 2, 2)]
+        model_conv_ += [ConvLayer(12, n_feature,
                                   3, 1, activation='leaky')]
 
         self.model_conv = nn.Sequential(*model_conv_)
@@ -80,6 +80,27 @@ class Generator(nn.Module):
         out = self.model_deconv(y)
 
         return out
+
+
+class ConvTransposeLayer(nn.Module):
+    def __init__(self, in_ch, out_ch, kernel_size, stride, cnn_kwargs=dict()):
+        super(ConvTransposeLayer, self).__init__()
+
+        # convolution
+        self.conv_layer = nn.ConvTranspose2d(
+            in_ch, out_ch, kernel_size=kernel_size, stride=stride, **cnn_kwargs)
+
+        # activation
+        self.activation = nn.PReLU()
+        self.normalization = channel.ChannelNorm2D_wrap(
+            out_ch, momentum=0.1, affine=True, track_running_stats=False)
+
+    def forward(self, x):
+        x = self.conv_layer(x)
+        x = self.normalization(x)
+        x = self.activation(x)
+
+        return x
 
 
 class ConvLayer(nn.Module):
