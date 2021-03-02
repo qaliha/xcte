@@ -285,26 +285,27 @@ if __name__ == '__main__':
 
         model.Encoder.eval()
         for iteration, batch in bar:
-            # compress original image (not cropped to get full image)
-            image = batch[0].to(device)
-            compressed_path = batch[2]
+            with torch.no_grad():
+                # compress original image (not cropped to get full image)
+                image = batch[0].to(device)
+                compressed_path = batch[2]
 
-            # Encoder [-1, 1], Compressed: [0, 1]
-            encoder_output = model.Encoder(image)
+                # Encoder [-1, 1], Compressed: [0, 1]
+                encoder_output = model.Encoder(image)
 
-            # Convert from [-1, 1] to [0, 1]
-            compressed_image = (encoder_output + 1.) / 2.
-            compressed_image = model.compress(compressed_image.detach())
+                # Convert from [-1, 1] to [0, 1]
+                compressed_image = (encoder_output + 1.) / 2.
+                compressed_image = model.compress(compressed_image.detach())
 
-            for i in range(compressed_image.size(0)):
-                # Save the compressed image to local disk
-                # [-1., 1.] -> [0., 1.] -> *255
-                save_img(compressed_image[i, :, :, :], compressed_path[i])
+                for i in range(compressed_image.size(0)):
+                    # Save the compressed image to local disk
+                    # [-1., 1.] -> [0., 1.] -> *255
+                    save_img(compressed_image[i, :, :, :], compressed_path[i])
 
-            if not opt.silent:
-                bar.set_description(desc='itr: %d/%d [%3d/%3d] Compressing Image' % (
-                    iteration, data_len, epoch, num_epoch - 1
-                ))
+                if not opt.silent:
+                    bar.set_description(desc='itr: %d/%d [%3d/%3d] Compressing Image' % (
+                        iteration, data_len, epoch, num_epoch - 1
+                    ))
 
         data_len = len(training_data_loader)
         bar_ex = tqdm(enumerate(training_data_loader, 1),
@@ -511,77 +512,78 @@ if __name__ == '__main__':
                         total=data_len_test, disable=opt.silent)
         r_intermedient = random.randint(0, data_len_test)
         for iteration, batch in bar_test:
-            input = batch[0+3].to(device)
+            with torch.no_grad():
+                input = batch[0+3].to(device)
 
-            encoder_output = model.Encoder(input)
+                encoder_output = model.Encoder(input)
 
-            # compress the image from encoder
-            compressed_image = model.compress(prepare_for_compression_from_normalized_input(
-                encoder_output.detach().squeeze(0).cpu()))
+                # compress the image from encoder
+                compressed_image = model.compress(prepare_for_compression_from_normalized_input(
+                    encoder_output.detach().squeeze(0).cpu()))
 
-            # Output from compress is [0, 1], before wi normalize, we must normalize this tensor to [-1, 0] first,
-            # we can convert this to image and back to tensor
-            compressed_image = tensor2img(compressed_image)
-            compressed_image = transforms.ToTensor()(compressed_image)
+                # Output from compress is [0, 1], before wi normalize, we must normalize this tensor to [-1, 0] first,
+                # we can convert this to image and back to tensor
+                compressed_image = tensor2img(compressed_image)
+                compressed_image = transforms.ToTensor()(compressed_image)
 
-            # then normalize the image
-            compressed_image_normalized = transforms.Normalize(
-                (0.5, 0.5, 0.5), (0.5, 0.5, 0.5))(compressed_image)
-            # Add batch size and attach to device
-            compressed_image_normalized = compressed_image_normalized.unsqueeze(
-                0).to(device)
+                # then normalize the image
+                compressed_image_normalized = transforms.Normalize(
+                    (0.5, 0.5, 0.5), (0.5, 0.5, 0.5))(compressed_image)
+                # Add batch size and attach to device
+                compressed_image_normalized = compressed_image_normalized.unsqueeze(
+                    0).to(device)
 
-            # compressed_image_normalized = normalize(compressed_image)
-            expanded_image = model.Generator(compressed_image_normalized)
+                # compressed_image_normalized = normalize(compressed_image)
+                expanded_image = model.Generator(compressed_image_normalized)
 
-            if r_intermedient == (iteration-1):
-                if not os.path.exists("interm"):
-                    os.mkdir("interm")
+                if r_intermedient == (iteration-1):
+                    if not os.path.exists("interm"):
+                        os.mkdir("interm")
 
-                image_tensor = torchvision.utils.make_grid(
-                    [input.detach().squeeze(0), compressed_image_normalized.detach().squeeze(0), expanded_image.detach().squeeze(0)])
+                    image_tensor = torchvision.utils.make_grid(
+                        [input.detach().squeeze(0), compressed_image_normalized.detach().squeeze(0), expanded_image.detach().squeeze(0)])
 
-                if opt.tensorboard:
-                    # Change from [-1, 1] to [0, 1]
-                    image_tensor_optimizer = (image_tensor + 1.) / 2.
+                    if opt.tensorboard:
+                        # Change from [-1, 1] to [0, 1]
+                        image_tensor_optimizer = (image_tensor + 1.) / 2.
 
-                    writer.add_image('testing_image_sample',
-                                     image_tensor_optimizer, epoch)
+                        writer.add_image('testing_image_sample',
+                                         image_tensor_optimizer, epoch)
 
-                save_img_version(image_tensor.cpu(),
-                                 'interm/{}.png'.format(epoch))
+                    save_img_version(image_tensor.cpu(),
+                                     'interm/{}.png'.format(epoch))
 
-            input_img = normalize_input_from_normalied(
-                input.detach().squeeze(0).cpu())
-            compressed_img = normalize_input_from_normalied(
-                compressed_image_normalized.detach().squeeze(0).cpu())
-            expanded_img = normalize_input_from_normalied(
-                expanded_image.detach().squeeze(0).cpu())
+                input_img = normalize_input_from_normalied(
+                    input.detach().squeeze(0).cpu())
+                compressed_img = normalize_input_from_normalied(
+                    compressed_image_normalized.detach().squeeze(0).cpu())
+                expanded_img = normalize_input_from_normalied(
+                    expanded_image.detach().squeeze(0).cpu())
 
-            _tmp_psnr_compressed = psnr(input_img, compressed_img)
-            _tmp_ssim_compressed = ssim(compressed_img, input_img)
+                _tmp_psnr_compressed = psnr(input_img, compressed_img)
+                _tmp_ssim_compressed = ssim(compressed_img, input_img)
 
-            _tmp_psnr_expanded = psnr(input_img, expanded_img)
-            _tmp_ssim_expanded = ssim(expanded_img, input_img)
+                _tmp_psnr_expanded = psnr(input_img, expanded_img)
+                _tmp_ssim_expanded = ssim(expanded_img, input_img)
 
-            if _tmp_psnr_compressed >= Inf:
-                count_inf += 1
+                if _tmp_psnr_compressed >= Inf:
+                    count_inf += 1
 
-            if _tmp_psnr_expanded >= Inf:
-                count_inf += 1
+                if _tmp_psnr_expanded >= Inf:
+                    count_inf += 1
 
-            psnr_lists.append(_tmp_psnr_expanded)
-            ssim_lists.append(_tmp_ssim_expanded)
+                psnr_lists.append(_tmp_psnr_expanded)
+                ssim_lists.append(_tmp_ssim_expanded)
 
-            psnr_enc_lists.append(_tmp_psnr_compressed)
-            ssim_enc_lists.append(_tmp_ssim_compressed)
+                psnr_enc_lists.append(_tmp_psnr_compressed)
+                ssim_enc_lists.append(_tmp_ssim_compressed)
 
-            if not opt.silent:
-                bar_test.set_description(desc='itr: %d/%d [%3d/%3d] C[P: %.4fdb S: %.4f] E[P: %.4fdb S: %.4f] Testing Image' % (
-                    iteration, data_len_test, epoch, num_epoch - 1,
-                    _tmp_psnr_compressed, _tmp_ssim_compressed,
-                    _tmp_psnr_expanded, _tmp_ssim_expanded
-                ))
+                if not opt.silent:
+                    bar_test.set_description(desc='itr: %d/%d [%3d/%3d] C[P: %.4fdb S: %.4f] E[P: %.4fdb S: %.4f] Testing Image' % (
+                        iteration, data_len_test, epoch, num_epoch - 1,
+                        _tmp_psnr_compressed, _tmp_ssim_compressed,
+                        _tmp_psnr_expanded, _tmp_ssim_expanded
+                    ))
 
         mean_compressiong_psnr = np.ma.masked_invalid(psnr_enc_lists).mean()
         mean_compressing_ssim = np.ma.masked_invalid(ssim_enc_lists).mean()
