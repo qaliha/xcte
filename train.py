@@ -659,7 +659,7 @@ if __name__ == '__main__':
 
             if mean_expanding_ssim >= max_ssim:
                 notice = f"Found new max SSIM on epoch {epoch}. {max_ssim} -> {mean_expanding_ssim}"
-                writer.add_text(notice)
+                writer.add_text('logs', notice, epoch)
                 print(notice)
 
                 max_ssim = mean_expanding_psnr
