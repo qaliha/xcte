@@ -100,13 +100,13 @@ class Model(nn.Module):
 
         # Normalize the input image
         # [-1., 1.] -> [0., 1.]
-        x_real = (x_real + 1.) / 2.
-        x_gen = (x_gen + 1.) / 2.
+        # x_real = (x_real + 1.) / 2.
+        # x_gen = (x_gen + 1.) / 2.
 
         distortion_loss = self.distortion_loss(x_gen, x_real)
-        weighted_distortion = distortion_loss * self.k_M
+        # weighted_distortion = distortion_loss * self.k_M
 
-        return weighted_distortion
+        return distortion_loss
 
     def compression_loss(self, reconstruction, input_image):
         x_real = input_image
@@ -114,17 +114,17 @@ class Model(nn.Module):
 
         # Normalize the input image
         # [-1., 1.] -> [0., 1.]
-        x_real = (x_real + 1.) / 2.
-        x_gen = (x_gen + 1.) / 2.
+        # x_real = (x_real + 1.) / 2.
+        # x_gen = (x_gen + 1.) / 2.
 
         distortion_loss = self.distortion_loss(x_gen, x_real)
         # perceptual_loss = self.perceptual_loss(x_gen, x_real, normalize=True)
 
-        weighted_distortion = distortion_loss * self.k_M
+        # weighted_distortion = distortion_loss * self.k_M
         # weighted_perceptual = perceptual_loss * self.k_P
 
         # return weighted_distortion + weighted_perceptual
-        return weighted_distortion
+        return distortion_loss
 
     # def gd_training(self, compressed, original):
     #     # Compressed = real_a, Original = real_b
