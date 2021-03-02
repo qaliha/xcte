@@ -380,7 +380,7 @@ if __name__ == '__main__':
 
             t_discriminator_loss += discriminator_loss.item()
             t_generator_losses += generator_losses.item()
-            t_dec_losses += decoder_losses.item()
+            t_dec_losses += decoder_losses.item() * 0.5
 
             if iteration == data_len:
                 local_train_logs_holder.append(
