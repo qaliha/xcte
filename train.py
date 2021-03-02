@@ -662,7 +662,7 @@ if __name__ == '__main__':
                 writer.add_text('logs', notice, epoch)
                 print(notice)
 
-                max_ssim = mean_expanding_psnr
+                max_ssim = mean_expanding_ssim
                 max_ssim_epoch = epoch
 
                 state['max_ssim'] = max_ssim
