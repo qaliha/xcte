@@ -81,8 +81,8 @@ class Model(nn.Module):
     def distortion_loss(self, x_gen, x_real):
         # loss in [0,255] space but normalized by 255 to not be too big
         # - Delegate scaling to weighting
-        # sq_err = self.squared_difference(x_gen*255., x_real*255.)  # / 255.
-        sq_err = self.squared_difference(x_gen, x_real)
+        sq_err = self.squared_difference(x_gen*255., x_real*255.)  # / 255.
+
         return torch.mean(sq_err)
 
     # def perceptual_loss(self, pred, target, normalize=True):
@@ -100,8 +100,8 @@ class Model(nn.Module):
 
         # Normalize the input image
         # [-1., 1.] -> [0., 1.]
-        # x_real = (x_real + 1.) / 2.
-        # x_gen = (x_gen + 1.) / 2.
+        x_real = (x_real + 1.) / 2.
+        x_gen = (x_gen + 1.) / 2.
 
         distortion_loss = self.distortion_loss(x_gen, x_real)
         # weighted_distortion = distortion_loss * self.k_M
@@ -114,8 +114,8 @@ class Model(nn.Module):
 
         # Normalize the input image
         # [-1., 1.] -> [0., 1.]
-        # x_real = (x_real + 1.) / 2.
-        # x_gen = (x_gen + 1.) / 2.
+        x_real = (x_real + 1.) / 2.
+        x_gen = (x_gen + 1.) / 2.
 
         distortion_loss = self.distortion_loss(x_gen, x_real)
         # perceptual_loss = self.perceptual_loss(x_gen, x_real, normalize=True)
