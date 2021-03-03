@@ -3,7 +3,7 @@ import torch.nn as nn
 from torch.nn import init
 from functools import partial
 
-import lpips
+# import lpips
 
 from src.utils.compression import _compress
 

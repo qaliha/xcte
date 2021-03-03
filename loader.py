@@ -1,7 +1,7 @@
 from os import listdir
 import math
 from os.path import join, exists
-import random
+# import random
 import torch
 import numpy as np
 import torch.utils.data as data
@@ -53,6 +53,9 @@ class DatasetFromFolder(data.Dataset):
 
         return transforms.Compose(transforms_list)
 
+    def random(self):
+        return torch.rand(1).numpy()[0]
+
     def __getitem__(self, index):
         a = Image.open(
             join(self.a_path, self.image_filenames[index])).convert('RGB')
@@ -79,7 +82,7 @@ class DatasetFromFolder(data.Dataset):
 
         # Randomly apply augmentation to dataset
         # Random horizontal flipping
-        if random.random() > 0.5:
+        if self.random() > 0.5:
             a_composed = TF.hflip(a)
             if b_found:
                 b_composed = TF.hflip(b)
@@ -89,7 +92,7 @@ class DatasetFromFolder(data.Dataset):
                 b_composed = b
 
         # Random vertical flipping
-        if random.random() > 0.5:
+        if self.random() > 0.5:
             a_composed = TF.vflip(a_composed)
             if b_found:
                 b_composed = TF.vflip(b_composed)
