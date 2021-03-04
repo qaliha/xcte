@@ -47,8 +47,7 @@ class Generator(nn.Module):
         model_conv_ = [PixelUnshuffle(2)]
         # Train how to upscaling image
         model_conv_ += [ConvTransposeLayer(12, 12, 2, 2)]
-        model_conv_ += [ConvLayer(12, n_feature,
-                                  3, 1, activation='leaky')]
+        model_conv_ += [ConvLayer(12, n_feature, 3, 1)]
 
         self.model_conv = nn.Sequential(*model_conv_)
 
@@ -58,7 +57,7 @@ class Generator(nn.Module):
 
         self.model_resblocks = nn.Sequential(*model_resblocks_)
 
-        self.leaky = nn.LeakyReLU(negative_slope=0.2)
+        self.prelu = nn.PReLU()
         self.model_resout = ConvLayer(
             n_feature, n_feature, 3, 1, activation='skip')
 
@@ -75,7 +74,7 @@ class Generator(nn.Module):
         res = self.model_resblocks(y)
         res = self.model_resout(res)
         res = torch.add(res, residual)
-        y = self.leaky(res)
+        y = self.prelu(res)
 
         out = self.model_deconv(y)
 
