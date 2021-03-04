@@ -77,9 +77,11 @@ class DatasetFromFolder(data.Dataset):
         b_composed = list()
         b_path = join(self.b_path, self.image_filenames[index])
 
-        b_found = exists(b_path)
+        b_found = False
 
         if self.load_compressed and exists(b_path):
+            b_found = True
+
             b = Image.open(b_path).convert('RGB')
 
             b_tensor = default_transforms(b)
