@@ -32,29 +32,29 @@ class Model(nn.Module):
         self.squared_difference = torch.nn.MSELoss(reduction='none')
         # self.perceptual_loss = VGGLoss()
 
-        self.__initialize_weights(self.Encoder)
-        self.__initialize_weights(self.Generator)
-        self.__initialize_weights(self.Discriminator)
+        # self.__initialize_weights(self.Encoder)
+        # self.__initialize_weights(self.Generator)
+        # self.__initialize_weights(self.Discriminator)
 
         self.bit_size = bit
 
         # self.k_M = 0.075 * 2**(-5)
-        self.k_M = 1.
-        self.k_P = 0.
-        self.beta = 0.15
+        # self.k_M = 1.
+        # self.k_P = 0.
+        # self.beta = 0.15
 
         # self.loss_fn_alex = lpips.LPIPS(net='vgg')
 
-    def __initialize_weights(self, net):
-        def init_func(m):
-            classname = m.__class__.__name__
-            if hasattr(m, 'weight') and (classname.find('Conv') != -1 or classname.find('Linear') != -1):
-                init.normal_(m.weight.data, 0.0, 0.02)
-            elif classname.find('BatchNorm2d') != -1:
-                init.normal_(m.weight.data, 1.0, 0.02)
-                init.constant_(m.bias.data, 0.0)
+    # def __initialize_weights(self, net):
+    #     def init_func(m):
+    #         classname = m.__class__.__name__
+    #         if hasattr(m, 'weight') and (classname.find('Conv') != -1 or classname.find('Linear') != -1):
+    #             init.normal_(m.weight.data, 0.0, 0.02)
+    #         elif classname.find('BatchNorm2d') != -1:
+    #             init.normal_(m.weight.data, 1.0, 0.02)
+    #             init.constant_(m.bias.data, 0.0)
 
-        net.apply(init_func)
+    #     net.apply(init_func)
 
     def compress(self, x):
         return _compress(x, self.bit_size)

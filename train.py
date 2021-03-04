@@ -220,6 +220,9 @@ if __name__ == '__main__':
             if opt.debug:
                 print(model.Encoder.connection_weights)
 
+            training_data_loader.dataset.set_load_compressed(
+                False)  # for speedup
+
             data_len = len(training_data_loader)
             bar_enc = tqdm(enumerate(training_data_loader, 1),
                            total=data_len, disable=opt.silent)
@@ -284,6 +287,9 @@ if __name__ == '__main__':
                 'logs', f'Epoch {epoch} - Compressing Image', epoch)
 
         model.Encoder.eval()
+
+        training_data_loader.dataset.set_load_compressed(
+            False)  # don't load b for speedup
         for iteration, batch in bar:
             with torch.no_grad():
                 # compress original image (not cropped to get full image)
@@ -306,6 +312,9 @@ if __name__ == '__main__':
                     bar.set_description(desc='itr: %d/%d [%3d/%3d] Compressing Image' % (
                         iteration, data_len, epoch, num_epoch - 1
                     ))
+
+        training_data_loader.dataset.set_load_compressed(
+            True)  # load compressed for training
 
         data_len = len(training_data_loader)
         bar_ex = tqdm(enumerate(training_data_loader, 1),
@@ -429,6 +438,8 @@ if __name__ == '__main__':
 
         t_compression_losses = 0
 
+        training_data_loader.dataset.set_load_compressed(False)  # for speedup
+
         # Updating encoding parameters here
         model.Encoder.train()
         model.Generator.eval()
@@ -506,6 +517,8 @@ if __name__ == '__main__':
 
         if opt.tensorboard:
             writer.add_text('logs', f'Epoch {epoch} - Validation Model', epoch)
+
+        testing_data_loader.dataset.set_load_compressed(False)  # for speed up
 
         data_len_test = len(testing_data_loader)
         bar_test = tqdm(enumerate(testing_data_loader, 1),

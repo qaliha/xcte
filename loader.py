@@ -40,6 +40,7 @@ class DatasetFromFolder(data.Dataset):
             self.a_path) if is_image_file(x)]
 
         self.scale_n_crop = scale_n_crop
+        self.load_compressed = True
 
         if not dir_exists(self.b_path):
             mkdir(self.b_path)
@@ -55,6 +56,9 @@ class DatasetFromFolder(data.Dataset):
 
     def random(self):
         return torch.rand(1).numpy()[0]
+
+    def set_load_compressed(self, val):
+        self.load_compressed = val
 
     def __getitem__(self, index):
         a = Image.open(
@@ -75,7 +79,7 @@ class DatasetFromFolder(data.Dataset):
 
         b_found = exists(b_path)
 
-        if exists(b_path):
+        if self.load_compressed and exists(b_path):
             b = Image.open(b_path).convert('RGB')
 
             b_tensor = default_transforms(b)
