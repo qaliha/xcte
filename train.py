@@ -241,7 +241,7 @@ if __name__ == '__main__':
                 # calculate gradients
                 encoded = model.Encoder(image)
                 compression_losses = model.compression_loss(
-                    encoded, image)
+                    encoded, image) * 0.5
                 compression_losses.backward()
 
                 # update weights
@@ -380,7 +380,7 @@ if __name__ == '__main__':
                 D_real, D_gen, D_real_logits, D_gen_logits, 'generator_loss')
 
             decoder_losses = model.restruction_loss(expanded, image)
-            generator_losses = gan_losses * 0.01 + decoder_losses
+            generator_losses = gan_losses * 0.01 + decoder_losses * 0.5
 
             generator_losses.backward()
 
@@ -389,7 +389,7 @@ if __name__ == '__main__':
 
             t_discriminator_loss += discriminator_loss.item()
             t_generator_losses += generator_losses.item()
-            t_dec_losses += decoder_losses.item()
+            t_dec_losses += decoder_losses.item() * 0.5
 
             if iteration == data_len:
                 local_train_logs_holder.append(
@@ -438,7 +438,7 @@ if __name__ == '__main__':
 
         t_compression_losses = 0
 
-        training_data_loader.dataset.set_load_compressed(False)  # for speedup
+        training_data_loader.dataset.set_load_compressed(True)  # for speedup
 
         # Updating encoding parameters here
         model.Encoder.train()
@@ -446,6 +446,7 @@ if __name__ == '__main__':
         for iteration, batch in bar_enc:
             # Get random cropped image
             image = batch[0+3].to(device)
+            compressed_image = batch[1+3].to(device)
 
             # G requires no gradient when optimizing E
             model.set_requires_grad(model.Generator, False)
@@ -454,9 +455,13 @@ if __name__ == '__main__':
 
             # calculate gradient for E
             encoded = model.Encoder(image)
-            generated = model.Generator(encoded)
 
-            compression_losses = model.compression_loss(generated, image)
+            # <=== HERE THE ENCODER OVERFIT THE GENERATOR
+            encoded_masked = 0.5 * (encoded + compressed_image)
+
+            generated = model.Generator(encoded_masked)
+
+            compression_losses = model.compression_loss(generated, image) * 0.5
             compression_losses.backward()
 
             # update E's weights
@@ -487,6 +492,9 @@ if __name__ == '__main__':
                     0).cpu(), 'interm/inputed.png')
                 save_img_version(generated.detach().squeeze(
                     0).cpu(), 'interm/generated.png')
+
+                save_img_version(encoded_masked.detach().squeeze(
+                    0).cpu(), 'interm/masked.png')
 
                 print(model.Encoder.connection_weights)
 
