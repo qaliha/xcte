@@ -241,7 +241,7 @@ if __name__ == '__main__':
                 # calculate gradients
                 encoded = model.Encoder(image)
                 compression_losses = model.compression_loss(
-                    encoded, image) * 2
+                    encoded, image)
                 compression_losses.backward()
 
                 # update weights
@@ -456,7 +456,7 @@ if __name__ == '__main__':
             encoded = model.Encoder(image)
             generated = model.Generator(encoded)
 
-            compression_losses = model.compression_loss(generated, image) * 2
+            compression_losses = model.compression_loss(generated, image)
             compression_losses.backward()
 
             # update E's weights
