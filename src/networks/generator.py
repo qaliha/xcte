@@ -57,8 +57,8 @@ class Generator(nn.Module):
 
         self.model_resblocks = nn.Sequential(*model_resblocks_)
 
-        model_deconv_ = [ConvLayer(n_feature, 3, 3, 1)]
-        model_deconv_ += [ConvLayer(3, 3, 3, 1,
+        model_deconv_ = [ConvLayer(n_feature, n_feature, 3, 1)]
+        model_deconv_ += [ConvLayer(n_feature, 3, 3, 1,
                                     activation='skip', norm='skip')]
 
         # model_deconv_ = [ConvLayer(n_feature, 3, 3, 1)]
