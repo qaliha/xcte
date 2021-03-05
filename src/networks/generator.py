@@ -49,7 +49,7 @@ class Generator(nn.Module):
         model_conv_ += [ConvTransposeLayer(12, 12, 2, 2)]
         model_conv_ += [ConvLayer(12, n_feature, 3, 1)]
 
-        self.model_conv = nn.Sequential(*model_conv_)
+        self.conv_block_init = nn.Sequential(*model_conv_)
 
         model_resblocks_ = []
         for i in range(n_blocks):
@@ -57,28 +57,24 @@ class Generator(nn.Module):
 
         self.model_resblocks = nn.Sequential(*model_resblocks_)
 
-        self.prelu = nn.PReLU()
-        self.model_resout = ConvLayer(
-            n_feature, n_feature, 3, 1, activation='skip')
+        model_deconv_ = [ConvLayer(n_feature, 3, 3, 1)]
+        model_deconv_ += [ConvLayer(3, 3, 3, 1,
+                                    activation='skip', norm='skip')]
 
-        model_deconv_ = [ConvLayer(n_feature, int(n_feature / 2), 3, 1)]
-        model_deconv_ += [ConvLayer(int(n_feature / 2),
-                                    3, 3, 1, activation='tanh', norm='skip')]
+        # model_deconv_ = [ConvLayer(n_feature, 3, 3, 1)]
+        # model_deconv_ += [ConvLayer(3, 3, 3, 1, activation='tanh', norm='skip')]
 
-        self.model_deconv = nn.Sequential(*model_deconv_)
+        self.conv_block_out = nn.Sequential(*model_deconv_)
 
     def forward(self, x):
-        y = self.model_conv(x)
+        head = self.conv_block_init(x)
+        x = self.model_resblocks(head)
+        # res = self.model_resout(res)
+        x += head
 
-        residual = y
-        res = self.model_resblocks(y)
-        res = self.model_resout(res)
-        res = torch.add(res, residual)
-        y = self.prelu(res)
+        x = self.conv_block_out(x)
 
-        out = self.model_deconv(y)
-
-        return out
+        return x
 
 
 class ConvTransposeLayer(nn.Module):
@@ -160,7 +156,6 @@ class ResidualLayer(nn.Module):
     def __init__(self, in_ch, out_ch, kernel_size, stride):
         super(ResidualLayer, self).__init__()
 
-        self.prelu = nn.PReLU()
         self.conv1 = ConvLayer(in_ch, out_ch, kernel_size,
                                stride)
 
@@ -172,10 +167,7 @@ class ResidualLayer(nn.Module):
         res = self.conv1(x)
         res = self.conv2(res)
 
-        res = torch.add(res, identity_map)
-        out = self.prelu(res)
-
-        return out
+        return torch.add(res, identity_map)
 
 
 class DeconvLayer(nn.Module):

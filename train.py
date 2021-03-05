@@ -440,6 +440,10 @@ if __name__ == '__main__':
 
         training_data_loader.dataset.set_load_compressed(True)  # for speedup
 
+        before_encoder_weights = None
+        if opt.debug:
+            before_encoder_weights = list(model.Encoder.parameters())[1].clone()
+
         # Updating encoding parameters here
         model.Encoder.train()
         model.Generator.eval()
@@ -497,6 +501,11 @@ if __name__ == '__main__':
                     0).cpu(), 'interm/masked.png')
 
                 print(model.Encoder.connection_weights)
+
+        if opt.debug:
+            after_encoder_weights = list(model.Encoder.parameters())[1].clone()
+
+            assert(torch.equal(before_encoder_weights.data, after_encoder_weights.data) == False)
 
         if opt.tensorboard:
             writer.add_text(
