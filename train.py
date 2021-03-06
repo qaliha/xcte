@@ -442,7 +442,8 @@ if __name__ == '__main__':
 
         before_encoder_weights = None
         if opt.debug:
-            before_encoder_weights = list(model.Encoder.parameters())[1].clone()
+            before_encoder_weights = list(
+                model.Encoder.parameters())[1].clone()
 
         # Updating encoding parameters here
         model.Encoder.train()
@@ -505,7 +506,8 @@ if __name__ == '__main__':
         if opt.debug:
             after_encoder_weights = list(model.Encoder.parameters())[1].clone()
 
-            assert(torch.equal(before_encoder_weights.data, after_encoder_weights.data) == False)
+            assert(torch.equal(before_encoder_weights.data,
+                               after_encoder_weights.data) == False)
 
         if opt.tensorboard:
             writer.add_text(
