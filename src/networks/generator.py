@@ -59,7 +59,7 @@ class Generator(nn.Module):
 
         model_deconv_ = [ConvLayer(n_feature, n_feature, 3, 1)]
         model_deconv_ += [ConvLayer(n_feature, 3, 3, 1,
-                                    activation='skip', norm='skip')]
+                                    activation='tanh', norm='skip')]
 
         # model_deconv_ = [ConvLayer(n_feature, 3, 3, 1)]
         # model_deconv_ += [ConvLayer(3, 3, 3, 1, activation='tanh', norm='skip')]
@@ -99,7 +99,7 @@ class ConvTransposeLayer(nn.Module):
 
 
 class ConvLayer(nn.Module):
-    def __init__(self, in_ch, out_ch, kernel_size, stride, padding='default', activation='prelu', norm='channel', reflection_padding=3, cnn_kwargs=dict()):
+    def __init__(self, in_ch, out_ch, kernel_size, stride, padding='zero', activation='prelu', norm='channel', reflection_padding=3, cnn_kwargs=dict()):
         super(ConvLayer, self).__init__()
 
         # padding
@@ -107,6 +107,8 @@ class ConvLayer(nn.Module):
             self.pad = nn.ReflectionPad2d(kernel_size//2)
         elif padding == 'reflection':
             self.pad = nn.ReflectionPad2d(reflection_padding)
+        elif padding == 'zero':
+            self.pad = nn.ZeroPad2d(kernel_size//2)
         else:
             self.pad = None
 
@@ -170,46 +172,46 @@ class ResidualLayer(nn.Module):
         return torch.add(res, identity_map)
 
 
-class DeconvLayer(nn.Module):
-    def __init__(self, in_ch, out_ch, kernel_size, stride, activation='relu', upsample='nearest', norm='batch'):
-        super(DeconvLayer, self).__init__()
+# class DeconvLayer(nn.Module):
+#     def __init__(self, in_ch, out_ch, kernel_size, stride, activation='relu', upsample='nearest', norm='batch'):
+#         super(DeconvLayer, self).__init__()
 
-        # upsample
-        self.upsample = nn.Upsample(scale_factor=2, mode=upsample)
+#         # upsample
+#         self.upsample = nn.Upsample(scale_factor=2, mode=upsample)
 
-        # pad
-        self.pad = nn.ReflectionPad2d(kernel_size//2)
+#         # pad
+#         self.pad = nn.ReflectionPad2d(kernel_size//2)
 
-        # conv
-        self.conv = nn.Conv2d(in_ch, out_ch, kernel_size, stride)
+#         # conv
+#         self.conv = nn.Conv2d(in_ch, out_ch, kernel_size, stride)
 
-        # activation
-        if activation == 'prelu':
-            self.activation = nn.PReLU()
-        if activation == 'relu':
-            self.activation = nn.ReLU()
-        else:
-            raise NotImplementedError("Not implemented!")
+#         # activation
+#         if activation == 'prelu':
+#             self.activation = nn.PReLU()
+#         if activation == 'relu':
+#             self.activation = nn.ReLU()
+#         else:
+#             raise NotImplementedError("Not implemented!")
 
-        # normalization
-        if norm == 'channel':
-            self.normalization = channel.InstanceNorm2D_wrap(out_ch,
-                                                             momentum=0.1, affine=True, track_running_stats=False)
-        elif norm == 'group':
-            self.normalization = nn.GroupNorm(2, out_ch, affine=True)
-        elif norm == 'batch':
-            self.normalization = nn.BatchNorm2d(out_ch)
-        else:
-            self.normalization = None
+#         # normalization
+#         if norm == 'channel':
+#             self.normalization = channel.InstanceNorm2D_wrap(out_ch,
+#                                                              momentum=0.1, affine=True, track_running_stats=False)
+#         elif norm == 'group':
+#             self.normalization = nn.GroupNorm(2, out_ch, affine=True)
+#         elif norm == 'batch':
+#             self.normalization = nn.BatchNorm2d(out_ch)
+#         else:
+#             self.normalization = None
 
-    def forward(self, x):
-        x = self.upsample(x)
-        x = self.pad(x)
-        x = self.conv(x)
-        if self.normalization is not None:
-            x = self.normalization(x)
-        x = self.activation(x)
-        return x
+#     def forward(self, x):
+#         x = self.upsample(x)
+#         x = self.pad(x)
+#         x = self.conv(x)
+#         if self.normalization is not None:
+#             x = self.normalization(x)
+#         x = self.activation(x)
+#         return x
 
 
 def trial():
