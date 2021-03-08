@@ -5,7 +5,7 @@ def get_scheduler(optimizer, opt, option='lambda', step_length=15):
     scheduler = None
     if option == 'lambda':
         def lambda_rule(epoch):
-            lr_l = 1.0 - max(0, epoch - 10) / float(opt.nepoch - 10)
+            lr_l = 1.0 - max(0, epoch - 2) / float(opt.nepoch - 2)
             return lr_l
         scheduler = lr_scheduler.LambdaLR(optimizer, lr_lambda=lambda_rule)
     elif option == 'step':
