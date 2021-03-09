@@ -159,17 +159,20 @@ class ResidualLayer(nn.Module):
         super(ResidualLayer, self).__init__()
 
         self.conv1 = ConvLayer(in_ch, out_ch, kernel_size,
-                               stride)
+                               stride, activation='none')
 
         self.conv2 = ConvLayer(out_ch, out_ch, kernel_size,
                                stride, activation='none')
+
+        self.activation = nn.PReLU()
 
     def forward(self, x):
         identity_map = x
         res = self.conv1(x)
         res = self.conv2(res)
 
-        return torch.add(res, identity_map)
+        res = torch.add(res, identity_map)
+        return self.activation(res)
 
 
 # class DeconvLayer(nn.Module):
