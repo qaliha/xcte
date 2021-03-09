@@ -51,11 +51,17 @@ class Generator(nn.Module):
 
         self.conv_block_init = nn.Sequential(*model_conv_)
 
+        self.before_resenet_block = ConvLayer(
+            n_feature, n_feature, 3, 1, activation='leaky')
+
         model_resblocks_ = []
         for i in range(n_blocks):
             model_resblocks_ += [ResidualLayer(n_feature, n_feature, 3, 1)]
 
         self.model_resblocks = nn.Sequential(*model_resblocks_)
+
+        self.after_resnet_block = ConvLayer(
+            n_feature, n_feature, 3, 1, activation='leaky')
 
         model_deconv_ = [ConvLayer(n_feature, n_feature, 3, 1)]
         model_deconv_ += [ConvLayer(n_feature, 3, 3, 1,
@@ -68,9 +74,11 @@ class Generator(nn.Module):
 
     def forward(self, x):
         head = self.conv_block_init(x)
+        head = self.before_resenet_block(head)
         x = self.model_resblocks(head)
         # res = self.model_resout(res)
         x += head
+        x = self.after_resnet_block(x)
 
         x = self.conv_block_out(x)
 
@@ -159,20 +167,17 @@ class ResidualLayer(nn.Module):
         super(ResidualLayer, self).__init__()
 
         self.conv1 = ConvLayer(in_ch, out_ch, kernel_size,
-                               stride, activation='none')
+                               stride)
 
         self.conv2 = ConvLayer(out_ch, out_ch, kernel_size,
                                stride, activation='none')
-
-        self.activation = nn.PReLU()
 
     def forward(self, x):
         identity_map = x
         res = self.conv1(x)
         res = self.conv2(res)
 
-        res = torch.add(res, identity_map)
-        return self.activation(res)
+        return torch.add(res, identity_map)
 
 
 # class DeconvLayer(nn.Module):
