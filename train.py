@@ -32,6 +32,8 @@ def load_checkpoint(model, opt_e, opt_g, opt_d, sch_e, sch_g, ech_d, filename='n
     logs = list()
     max_ssim = -Infinity
     max_ssim_epoch = 0
+    bit_size = 0
+
     if os.path.isfile(filename):
         print("=> Loading checkpoint '{}'".format(filename))
         # state = torch.load(filename)
@@ -43,6 +45,7 @@ def load_checkpoint(model, opt_e, opt_g, opt_d, sch_e, sch_g, ech_d, filename='n
 
         start_epoch = state['epoch']
         logs = state['logs']
+        bit_size = state['bit']
         model.load_state_dict(state['model_dict'])
         # optimizer
         opt_e.load_state_dict(state['optimizer_e'])
@@ -56,7 +59,7 @@ def load_checkpoint(model, opt_e, opt_g, opt_d, sch_e, sch_g, ech_d, filename='n
         print("=> No checkpoint found at '{}'".format(filename))
         exit()
 
-    return start_epoch, model, opt_e, opt_g, opt_d, sch_e, sch_g, ech_d, logs, max_ssim, max_ssim_epoch
+    return start_epoch, model, opt_e, opt_g, opt_d, sch_e, sch_g, ech_d, logs, max_ssim, max_ssim_epoch, bit_size
 
 
 if __name__ == '__main__':
@@ -175,12 +178,16 @@ if __name__ == '__main__':
     max_ssim = -Infinity
     max_ssim_epoch = 0
 
+    tmp_bit_size = opt.bit
+
     if start_epoch > 1:
-        start_epoch, model, opt_encoder, opt_generator, opt_discriminator, sch_encoder, sch_generator, sch_discriminator, train_logs_holder, max_ssim, max_ssim_epoch = load_checkpoint(
+        start_epoch, model, opt_encoder, opt_generator, opt_discriminator, sch_encoder, sch_generator, sch_discriminator, train_logs_holder, max_ssim, max_ssim_epoch, tmp_bit_size = load_checkpoint(
             model, opt_encoder, opt_generator, opt_discriminator, sch_encoder, sch_generator, sch_discriminator, "checkpoint/{}/net_{}_epoch_{}.pth".format(opt.dataset, opt.name, start_epoch-1))
 
         print('Previous learning rate = {}'.format(
             opt_generator.param_groups[0]['lr']))
+
+        model.bit_size = tmp_bit_size
 
         for state in opt_encoder.state.values():
             for k, v in state.items():
@@ -263,9 +270,9 @@ if __name__ == '__main__':
 
             if opt.tensorboard:
                 writer.add_text(
-                    'logs', f'Warming loss: {t_warm_losses/max(1, data_len)}')
+                    'logs/s', f'Warming loss: {t_warm_losses/max(1, data_len)}')
                 writer.add_text(
-                    'logs', f'Connection weights after training: {model.Encoder.connection_weights.item()}')
+                    'logs/s', f'Connection weights after training: {model.Encoder.connection_weights.item()}')
 
             # Re enable after the warming
             model.Encoder.connection_weights.requires_grad = True
@@ -284,7 +291,7 @@ if __name__ == '__main__':
 
         if opt.tensorboard:
             writer.add_text(
-                'logs', f'Epoch {epoch} - Compressing Image', epoch)
+                'logs/s', f'Epoch {epoch} - Compressing Image', epoch)
 
         model.Encoder.eval()
 
@@ -326,7 +333,7 @@ if __name__ == '__main__':
 
         if opt.tensorboard:
             writer.add_text(
-                'logs', f'Epoch {epoch} - Training Generator', epoch)
+                'logs/s', f'Epoch {epoch} - Training Generator', epoch)
 
         model.Generator.train()
         model.Discriminator.train()
@@ -431,7 +438,8 @@ if __name__ == '__main__':
                 ))
 
         if opt.tensorboard:
-            writer.add_text('logs', f'Epoch {epoch} - Training Encoder', epoch)
+            writer.add_text(
+                'logs/s', f'Epoch {epoch} - Training Encoder', epoch)
 
         bar_enc = tqdm(enumerate(training_data_loader, 1),
                        total=data_len, disable=opt.silent)
@@ -447,7 +455,7 @@ if __name__ == '__main__':
 
         # Updating encoding parameters here
         model.Encoder.train()
-        model.Generator.eval()
+        model.Generator.train()
         for iteration, batch in bar_enc:
             # Get random cropped image
             image = batch[0+3].to(device)
@@ -511,7 +519,7 @@ if __name__ == '__main__':
 
         if opt.tensorboard:
             writer.add_text(
-                'logs', f'Connection weights after training: {model.Encoder.connection_weights.item()}', epoch)
+                'logs/s', f'Connection weights after training: {model.Encoder.connection_weights.item()}', epoch)
 
         print(
             f'Connection weights after training: {model.Encoder.connection_weights.item()}')
@@ -535,7 +543,8 @@ if __name__ == '__main__':
         count_inf = 0
 
         if opt.tensorboard:
-            writer.add_text('logs', f'Epoch {epoch} - Validation Model', epoch)
+            writer.add_text(
+                'logs/s', f'Epoch {epoch} - Validation Model', epoch)
 
         testing_data_loader.dataset.set_load_compressed(False)  # for speed up
 
@@ -689,11 +698,12 @@ if __name__ == '__main__':
                 'logs': train_logs_holder,
                 'max_ssim': max_ssim,
                 'max_ssim_epoch': max_ssim_epoch,
+                'bit': model.bit_size
             }
 
             if mean_expanding_ssim >= max_ssim:
                 notice = f"Found new max SSIM on epoch {epoch}. {max_ssim} -> {mean_expanding_ssim}"
-                writer.add_text('logs', notice, epoch)
+                writer.add_text('logs/s', notice, epoch)
                 print(notice)
 
                 max_ssim = mean_expanding_ssim

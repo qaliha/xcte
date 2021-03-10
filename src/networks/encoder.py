@@ -13,7 +13,7 @@ class FeatureExtractor(nn.Module):
 
         n_features = 64
 
-        model = [ConvLayer(3, n_features, 3, 1, norm='skip')]
+        model = [ConvLayer(3, n_features, 5, 1, norm='skip')]
         model += [ConvLayer(n_features, n_features, 3, 1, norm='skip')]
         # Ok for now remove this and copy the reference networks
         # model += [ConvLayer(n_features, n_features, 3, 1, norm='skip')]
