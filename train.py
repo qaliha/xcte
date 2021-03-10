@@ -438,7 +438,7 @@ if __name__ == '__main__':
 
         t_compression_losses = 0
 
-        training_data_loader.dataset.set_load_compressed(True)  # for speedup
+        training_data_loader.dataset.set_load_compressed(False)  # for speedup
 
         before_encoder_weights = None
         if opt.debug:
@@ -451,7 +451,7 @@ if __name__ == '__main__':
         for iteration, batch in bar_enc:
             # Get random cropped image
             image = batch[0+3].to(device)
-            compressed_image = batch[1+3].to(device)
+            # compressed_image = batch[1+3].to(device)
 
             # G requires no gradient when optimizing E
             model.set_requires_grad(model.Generator, False)
@@ -462,9 +462,9 @@ if __name__ == '__main__':
             encoded = model.Encoder(image)
 
             # <=== HERE THE ENCODER OVERFIT THE GENERATOR
-            encoded_masked = 0.5 * (encoded + compressed_image)
+            # encoded_masked = 0.5 * (encoded + compressed_image)
 
-            generated = model.Generator(encoded_masked)
+            generated = model.Generator(encoded)
 
             compression_losses = model.compression_loss(generated, image) * 0.5
             compression_losses.backward()
@@ -498,8 +498,8 @@ if __name__ == '__main__':
                 save_img_version(generated.detach().squeeze(
                     0).cpu(), 'interm/generated.png')
 
-                save_img_version(encoded_masked.detach().squeeze(
-                    0).cpu(), 'interm/masked.png')
+                # save_img_version(encoded_masked.detach().squeeze(
+                #     0).cpu(), 'interm/masked.png')
 
                 print(model.Encoder.connection_weights)
 
