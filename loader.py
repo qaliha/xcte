@@ -16,16 +16,6 @@ from PIL import Image
 def is_image_file(filename):
     return any(filename.endswith(extension) for extension in [".png", ".PNG", ".jpg", ".jpeg"])
 
-# transform_list = [transforms.ToTensor(),
-#     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
-
-# transform_list_compose = transforms.Compose(transform_list)
-# def transform_and_normalize(img):
-#     return transform_list_compose(img)
-
-# def normalize(img):
-#     return transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))(img)
-
 
 SCALE_MIN = 1.05
 SCALE_MAX = 1.25
@@ -49,7 +39,7 @@ class DatasetFromFolder(data.Dataset):
         # Default one, to tensor and normalize
         transforms_list = [
             transforms.ToTensor(),
-            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+            # transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
         ]
 
         return transforms.Compose(transforms_list)
@@ -126,52 +116,6 @@ class DatasetFromFolder(data.Dataset):
             b_composed = default_transforms(b_composed)
 
         return a_tensor, b_tensor, b_path, a_composed, b_composed
-
-    # def __getitem__(self, index):
-    #     a = Image.open(
-    #         join(self.a_path, self.image_filenames[index])).convert('RGB')
-
-    #     image_size = a.size[0]
-    #     image_bicubic = (image_size + 30) if self.scale_n_crop else image_size
-
-    #     # Crop offset
-    #     w_offset = random.randint(0, max(0, image_bicubic - image_size - 1))
-    #     h_offset = random.randint(0, max(0, image_bicubic - image_size - 1))
-
-    #     a_resized = a.resize((image_bicubic, image_bicubic), Image.NEAREST)
-
-    #     a = transforms.ToTensor()(a)
-    #     a = transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))(a)
-
-    #     a_resized = transforms.ToTensor()(a_resized)
-
-    #     a_resized = a_resized[:, h_offset:h_offset +
-    #                           image_size, w_offset:w_offset + image_size]
-
-    #     a_resized = transforms.Normalize(
-    #         (0.5, 0.5, 0.5), (0.5, 0.5, 0.5))(a_resized)
-
-    #     b = list()
-    #     b_resized = list()
-    #     b_path = join(self.b_path, self.image_filenames[index])
-
-    #     if exists(b_path):
-    #         b = Image.open(b_path).convert('RGB')
-
-    #         b_resized = b.resize((image_bicubic, image_bicubic), Image.BICUBIC)
-
-    #         b = transforms.ToTensor()(b)
-    #         b = transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))(b)
-
-    #         b_resized = transforms.ToTensor()(b_resized)
-
-    #         b_resized = b_resized[:, h_offset:h_offset +
-    #                               image_size, w_offset:w_offset + image_size]
-
-    #         b_resized = transforms.Normalize(
-    #             (0.5, 0.5, 0.5), (0.5, 0.5, 0.5))(b_resized)
-
-    #     return a, b, b_path, a_resized, b_resized
 
     def __len__(self):
         return len(self.image_filenames)

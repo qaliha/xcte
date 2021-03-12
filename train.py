@@ -2,7 +2,7 @@ import warnings
 from tqdm import tqdm
 from loader_data import get_test_set, get_training_set
 from src.utils.metric import psnr, ssim
-from src.utils.tensor import normalize_input_from_normalied, prepare_for_compression_from_normalized_input, save_img, save_img_version, tensor2img
+from src.utils.tensor import save_img, save_img_version, tensor2img
 from src.scheduler import get_scheduler, update_learning_rate
 from src.model import Model
 import numpy as np
@@ -303,12 +303,12 @@ if __name__ == '__main__':
                 image = batch[0].to(device)
                 compressed_path = batch[2]
 
-                # Encoder [-1, 1], Compressed: [0, 1]
+                # Encoder [-1, 1], Compressed: [0, 1]. Correction -> Encoder output [0, 1]
                 encoder_output = model.Encoder(image)
 
-                # Convert from [-1, 1] to [0, 1]
-                compressed_image = (encoder_output + 1.) / 2.
-                compressed_image = model.compress(compressed_image.detach())
+                # Convert from [-1, 1] to [0, 1]. Encoder output has [0, 1]
+                # compressed_image = (encoder_output + 1.) / 2.
+                compressed_image = model.compress(encoder_output.detach())
 
                 for i in range(compressed_image.size(0)):
                     # Save the compressed image to local disk
@@ -559,47 +559,45 @@ if __name__ == '__main__':
                 encoder_output = model.Encoder(input)
 
                 # compress the image from encoder
-                compressed_image = model.compress(prepare_for_compression_from_normalized_input(
-                    encoder_output.detach().squeeze(0).cpu()))
+                # compressed_image = model.compress(prepare_for_compression_from_normalized_input(
+                # encoder_output.detach().squeeze(0).cpu()))
+
+                compressed_image = model.compress(encoder_output.detach())
 
                 # Output from compress is [0, 1], before wi normalize, we must normalize this tensor to [-1, 0] first,
                 # we can convert this to image and back to tensor
-                compressed_image = tensor2img(compressed_image)
-                compressed_image = transforms.ToTensor()(compressed_image)
+                # compressed_image = tensor2img(compressed_image)
+                # compressed_image = transforms.ToTensor()(compressed_image)
 
                 # then normalize the image
-                compressed_image_normalized = transforms.Normalize(
-                    (0.5, 0.5, 0.5), (0.5, 0.5, 0.5))(compressed_image)
+                # compressed_image_normalized = transforms.Normalize(
+                #     (0.5, 0.5, 0.5), (0.5, 0.5, 0.5))(compressed_image)
                 # Add batch size and attach to device
-                compressed_image_normalized = compressed_image_normalized.unsqueeze(
-                    0).to(device)
+                # compressed_image_normalized = compressed_image_normalized.unsqueeze(0).to(device)
 
                 # compressed_image_normalized = normalize(compressed_image)
-                expanded_image = model.Generator(compressed_image_normalized)
+                expanded_image = model.Generator(compressed_image)
 
                 if r_intermedient == (iteration-1):
                     if not os.path.exists("interm"):
                         os.mkdir("interm")
 
                     image_tensor = torchvision.utils.make_grid(
-                        [input.detach().squeeze(0), compressed_image_normalized.detach().squeeze(0), expanded_image.detach().squeeze(0)])
+                        [input.detach().squeeze(0), compressed_image.detach().squeeze(0), expanded_image.detach().squeeze(0)])
 
                     if opt.tensorboard:
                         # Change from [-1, 1] to [0, 1]
-                        image_tensor_optimizer = (image_tensor + 1.) / 2.
+                        # image_tensor_optimizer = (image_tensor + 1.) / 2.
 
-                        writer.add_image('testing_image_sample',
-                                         image_tensor_optimizer, epoch)
+                        writer.add_image(
+                            'testing_image_sample', image_tensor, epoch)
 
                     save_img_version(image_tensor.cpu(),
                                      'interm/{}.png'.format(epoch))
 
-                input_img = normalize_input_from_normalied(
-                    input.detach().squeeze(0).cpu())
-                compressed_img = normalize_input_from_normalied(
-                    compressed_image_normalized.detach().squeeze(0).cpu())
-                expanded_img = normalize_input_from_normalied(
-                    expanded_image.detach().squeeze(0).cpu())
+                input_img = tensor2img(input)
+                compressed_img = tensor2img(compressed_image)
+                expanded_img = tensor2img(expanded_image)
 
                 _tmp_psnr_compressed = psnr(input_img, compressed_img)
                 _tmp_ssim_compressed = ssim(compressed_img, input_img)
