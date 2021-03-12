@@ -93,15 +93,15 @@ class ConvTransposeLayer(nn.Module):
             in_ch, out_ch, kernel_size=kernel_size, stride=stride, **cnn_kwargs)
 
         self.normalization = nn.BatchNorm2d(out_ch)
+        self.activation = nn.ReLU()
         # activation
-        # self.activation = nn.PReLU()
         # self.normalization = channel.ChannelNorm2D_wrap(
         #     out_ch, momentum=0.1, affine=True, track_running_stats=False)
 
     def forward(self, x):
         x = self.conv_layer(x)
         x = self.normalization(x)
-        # x = self.activation(x)
+        x = self.activation(x)
 
         return x
 
