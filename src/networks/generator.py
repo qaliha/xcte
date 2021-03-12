@@ -64,7 +64,7 @@ class Generator(nn.Module):
             n_feature, n_feature, 3, 1, activation='leaky')
 
         model_deconv_ = [ConvLayer(n_feature, n_feature, 3, 1)]
-        model_deconv_ += [ConvLayer(n_feature, 3, 3, 1, activation='skip')]
+        model_deconv_ += [ConvLayer(n_feature, 3, 3, 1)]
 
         # model_deconv_ = [ConvLayer(n_feature, 3, 3, 1)]
         # model_deconv_ += [ConvLayer(3, 3, 3, 1, activation='tanh', norm='skip')]
@@ -107,7 +107,7 @@ class ConvTransposeLayer(nn.Module):
 
 
 class ConvLayer(nn.Module):
-    def __init__(self, in_ch, out_ch, kernel_size, stride, padding='default', activation='prelu', norm='batch', reflection_padding=3, cnn_kwargs=dict()):
+    def __init__(self, in_ch, out_ch, kernel_size, stride, padding='default', activation='relu', norm='batch', reflection_padding=3, cnn_kwargs=dict()):
         super(ConvLayer, self).__init__()
 
         # padding
@@ -166,7 +166,7 @@ class ResidualLayer(nn.Module):
     def __init__(self, in_ch, out_ch, kernel_size, stride):
         super(ResidualLayer, self).__init__()
 
-        self.activation = nn.PReLU()
+        self.activation = nn.ReLU()
         self.conv1 = ConvLayer(in_ch, out_ch, kernel_size,
                                stride, activation='none')
 
