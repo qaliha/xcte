@@ -13,12 +13,12 @@ class FeatureExtractor(nn.Module):
 
         n_features = 64
 
-        model = [ConvLayer(3, n_features, 3, 1, norm='none')]
+        model = [ConvLayer(3, n_features, 5, 1, norm='none')]
         model += [ConvLayer(n_features, n_features, 3, 1, norm='none')]
         # Ok for now remove this and copy the reference networks
         # model += [ConvLayer(n_features, n_features, 3, 1, norm='skip')]
-        model += [ConvLayer(n_features, 12, 2, 2, norm='none',
-                            activation='none', padding='none')]
+        model += [ConvLayer(n_features, 12, 3, 2, norm='none',
+                            activation='none', padding='reflection', reflection_padding=(0, 1, 1, 0))]
 
         model += [nn.PixelShuffle(2)]
 

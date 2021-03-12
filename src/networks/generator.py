@@ -2,42 +2,9 @@ from src.utils.tensor import save_img
 from numpy.core.numeric import identity
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 from src.norm import channel
-
-
-def pixel_unshuffle(input, downscale_factor):
-    '''
-    input: batchSize * c * k*w * k*h
-    kdownscale_factor: k
-    batchSize * c * k*w * k*h -> batchSize * k*k*c * w * h
-    '''
-    c = input.shape[1]
-
-    kernel = torch.zeros(size=[downscale_factor * downscale_factor * c,
-                               1, downscale_factor, downscale_factor],
-                         device=input.device)
-    for y in range(downscale_factor):
-        for x in range(downscale_factor):
-            kernel[x + y * downscale_factor::downscale_factor *
-                   downscale_factor, 0, y, x] = 1
-    return F.conv2d(input, kernel, stride=downscale_factor, groups=c)
-
-
-class PixelUnshuffle(nn.Module):
-    def __init__(self, downscale_factor):
-        super(PixelUnshuffle, self).__init__()
-        self.downscale_factor = downscale_factor
-
-    def forward(self, input):
-        '''
-        input: batchSize * c * k*w * k*h
-        kdownscale_factor: k
-        batchSize * c * k*w * k*h -> batchSize * k*k*c * w * h
-        '''
-
-        return pixel_unshuffle(input, self.downscale_factor)
+from src.utils.pixelunshuffle import PixelUnshuffle
 
 
 class Generator(nn.Module):
@@ -46,7 +13,7 @@ class Generator(nn.Module):
 
         model_conv_ = [PixelUnshuffle(2)]
         # Train how to upscaling image
-        model_conv_ += [ConvTransposeLayer(12, 12, 2, 2)]
+        model_conv_ += [ConvTransposeLayer(12, 12, 3, 2)]
         model_conv_ += [ConvLayer(12, n_feature, 3, 1)]
 
         self.conv_block_init = nn.Sequential(*model_conv_)
@@ -64,7 +31,7 @@ class Generator(nn.Module):
             n_feature, n_feature, 3, 1, activation='leaky')
 
         model_deconv_ = [ConvLayer(n_feature, n_feature, 3, 1)]
-        model_deconv_ += [ConvLayer(n_feature, 3, 3,
+        model_deconv_ += [ConvLayer(n_feature, 3, 5,
                                     1, norm='none', activation='none')]
 
         # model_deconv_ = [ConvLayer(n_feature, 3, 3, 1)]
@@ -91,24 +58,24 @@ class ConvTransposeLayer(nn.Module):
 
         # convolution
         self.conv_layer = nn.ConvTranspose2d(
-            in_ch, out_ch, kernel_size=kernel_size, stride=stride, **cnn_kwargs)
+            in_ch, out_ch, kernel_size=kernel_size, stride=stride, padding=1, output_padding=1, **cnn_kwargs)
 
-        self.normalization = nn.BatchNorm2d(out_ch)
-        self.activation = nn.PReLU()
-        # activation
-        # self.normalization = channel.ChannelNorm2D_wrap(
-        #     out_ch, momentum=0.1, affine=True, track_running_stats=False)
+        self.pre_norm = channel.ChannelNorm2D_wrap(
+            in_ch, momentum=0.1, affine=True, track_running_stats=False)
+        self.normalization = channel.ChannelNorm2D_wrap(
+            out_ch, momentum=0.1, affine=True, track_running_stats=False)
 
     def forward(self, x):
-        x = self.conv_layer(x)
-        x = self.normalization(x)
-        x = self.activation(x)
+        # normalize the input
+        out = self.pre_norm(x)
+        out = self.conv_layer(out)
+        out = self.normalization(out)
 
-        return x
+        return out
 
 
 class ConvLayer(nn.Module):
-    def __init__(self, in_ch, out_ch, kernel_size, stride, padding='default', activation='prelu', norm='batch', reflection_padding=3, cnn_kwargs=dict()):
+    def __init__(self, in_ch, out_ch, kernel_size, stride, padding='default', activation='prelu', norm='channel', reflection_padding=3, cnn_kwargs=dict()):
         super(ConvLayer, self).__init__()
 
         # padding
