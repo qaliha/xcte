@@ -345,7 +345,7 @@ if __name__ == '__main__':
                 D_real, D_gen, D_real_logits, D_gen_logits, 'generator_loss')
 
             decoder_losses = model.restruction_loss(expanded, image)
-            generator_losses = gan_losses * 0.01 + decoder_losses * 0.5
+            generator_losses = gan_losses * 0.0001 + decoder_losses * 0.5
 
             generator_losses.backward()
 
@@ -429,9 +429,9 @@ if __name__ == '__main__':
             encoded = model.Encoder(image)
 
             # <=== HERE THE ENCODER OVERFIT THE GENERATOR
-            encoded_masked = 0.5 * (encoded + compressed_image)
+            # encoded_masked = 0.5 * (encoded + compressed_image)
 
-            generated = model.Generator(encoded_masked)
+            generated = model.Generator(encoded)
 
             compression_losses = model.compression_loss(generated, image) * 0.5
             compression_losses.backward()
