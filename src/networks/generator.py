@@ -64,7 +64,8 @@ class Generator(nn.Module):
             n_feature, n_feature, 3, 1, activation='leaky')
 
         model_deconv_ = [ConvLayer(n_feature, n_feature, 3, 1)]
-        model_deconv_ += [ConvLayer(n_feature, 3, 3, 1)]
+        model_deconv_ += [ConvLayer(n_feature, 3, 3,
+                                    1, norm='none', activation='none')]
 
         # model_deconv_ = [ConvLayer(n_feature, 3, 3, 1)]
         # model_deconv_ += [ConvLayer(3, 3, 3, 1, activation='tanh', norm='skip')]
@@ -93,7 +94,7 @@ class ConvTransposeLayer(nn.Module):
             in_ch, out_ch, kernel_size=kernel_size, stride=stride, **cnn_kwargs)
 
         self.normalization = nn.BatchNorm2d(out_ch)
-        self.activation = nn.ReLU()
+        self.activation = nn.PReLU()
         # activation
         # self.normalization = channel.ChannelNorm2D_wrap(
         #     out_ch, momentum=0.1, affine=True, track_running_stats=False)
@@ -107,7 +108,7 @@ class ConvTransposeLayer(nn.Module):
 
 
 class ConvLayer(nn.Module):
-    def __init__(self, in_ch, out_ch, kernel_size, stride, padding='default', activation='relu', norm='batch', reflection_padding=3, cnn_kwargs=dict()):
+    def __init__(self, in_ch, out_ch, kernel_size, stride, padding='default', activation='prelu', norm='batch', reflection_padding=3, cnn_kwargs=dict()):
         super(ConvLayer, self).__init__()
 
         # padding
