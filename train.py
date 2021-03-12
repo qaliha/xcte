@@ -151,6 +151,8 @@ if __name__ == '__main__':
 
     if opt.tensorboard:
         writer.add_text('logs', f"Found mean: {mean}, std: {std}", 0)
+    else:
+        print(f"Found mean: {mean}, std: {std}")
 
     training_mean = (*mean,)
     training_std = (*std,)

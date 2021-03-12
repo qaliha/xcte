@@ -4,10 +4,24 @@ import torchvision.transforms as transforms
 from numpy.core.numeric import Infinity
 
 
+class NormalizeInverse(transforms.Normalize):
+    """
+    Undoes the normalization and returns the reconstructed images in the input domain.
+    """
+
+    def __init__(self, mean, std):
+        mean = torch.as_tensor(mean)
+        std = torch.as_tensor(std)
+        std_inv = 1 / (std + 1e-7)
+        mean_inv = -mean * std_inv
+        super().__init__(mean=mean_inv, std=std_inv)
+
+    def __call__(self, tensor):
+        return super().__call__(tensor.clone())
+
+
 def inverse_normalize(tensor, mean, std):
-    for t, m, s in zip(tensor, mean, std):
-        t.mul_(s).add_(m)
-    return tensor
+    return NormalizeInverse(mean, std)(tensor)
 
 
 def normalize(tensor, mean, std):
