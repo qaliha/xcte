@@ -1,120 +1,36 @@
+import os
+import shutil
+import random
 import warnings
+import numpy as np
+import torch.optim as optim
+import torch
+import tf
+import torchvision
+from os.path import join
 from tqdm import tqdm
 from loader_data import get_test_set, get_training_set
 from src.utils.metric import psnr, ssim
 from src.utils.tensor import save_img, save_img_version, tensor2img
+from src.utils.utils import load_checkpoint, normalize, inverse_normalize
 from src.scheduler import get_scheduler, update_learning_rate
 from src.model import Model
-import numpy as np
 from torch.utils.data import DataLoader
-from torch.autograd import Variable
-import torch.optim as optim
 from torch.utils.tensorboard import SummaryWriter
 from generate_dataset import dir_exists, mkdir
-import os
-import shutil
-from os.path import join
-import argparse
-import random
-from numpy.core.numeric import Inf, Infinity
+from numpy.core.numeric import Infinity
 from torchsummary import summary
-import torch
-import tf
-import torchvision.transforms as transforms
-import torchvision
 
+from arguments import get_arguments
 
 warnings.filterwarnings("ignore")
-
-
-def load_checkpoint(model, opt_e, opt_g, opt_d, sch_e, sch_g, ech_d, filename='net.pth'):
-    start_epoch = 0
-    logs = list()
-    max_ssim = -Infinity
-    max_ssim_epoch = 0
-    bit_size = 0
-
-    if os.path.isfile(filename):
-        print("=> Loading checkpoint '{}'".format(filename))
-        # state = torch.load(filename)
-        state = None
-        if torch.cuda.is_available():
-            state = torch.load(filename)
-        else:
-            state = torch.load(filename, map_location=torch.device('cpu'))
-
-        start_epoch = state['epoch']
-        logs = state['logs']
-        bit_size = state['bit']
-        model.load_state_dict(state['model_dict'])
-        # optimizer
-        opt_e.load_state_dict(state['optimizer_e'])
-        opt_g.load_state_dict(state['optimizer_g'])
-        opt_d.load_state_dict(state['optimizer_d'])
-        # scheduler
-        sch_e.load_state_dict(state['scheduler_e'])
-        sch_g.load_state_dict(state['scheduler_g'])
-        ech_d.load_state_dict(state['scheduler_d'])
-    else:
-        print("=> No checkpoint found at '{}'".format(filename))
-        exit()
-
-    return start_epoch, model, opt_e, opt_g, opt_d, sch_e, sch_g, ech_d, logs, max_ssim, max_ssim_epoch, bit_size
-
 
 if __name__ == '__main__':
 
     writer = SummaryWriter()
 
     # Training settings
-    parser = argparse.ArgumentParser(description='Compressing')
-    parser.add_argument('--dataset', required=True, help='dataset path')
-    parser.add_argument('--bit', required=True,
-                        type=int, help='compression bit')
-    parser.add_argument('--name', required=True, help='training name')
-
-    parser.add_argument('--epoch_limit', type=int, default=0,
-                        help='current run limitation (0 for no limit)')
-    parser.add_argument('--epoch_count', type=int, default=1,
-                        help='the starting epoch count')
-    parser.add_argument('--nepoch', type=int, default=50, help='# of epoch')
-
-    # Training
-    parser.add_argument('--commit', action='store_true',
-                        help='commit mode? checkpoint will replace and save all models configuration for retraining')
-    parser.add_argument('--warm', action='store_true',
-                        help='warming up the training by first train encoder to atleast generate "similiar" image to input')
-    parser.add_argument('--cuda', action='store_true', help='use cuda?')
-    parser.add_argument('--debug', action='store_true', help='use debug mode?')
-    parser.add_argument('--noscale', action='store_true',
-                        help='use scale and random crop?')
-
-    parser.add_argument('--epochsave', type=int, default=50, help='test')
-
-    parser.add_argument('--batch_size', type=int,
-                        default=8, help='training batch size')
-    parser.add_argument('--test_batch_size', type=int,
-                        default=1, help='testing batch size')
-
-    # Learning parameters
-    parser.add_argument('--a', type=float, default=.8,
-                        help='initial alpha gate for encoder')
-    parser.add_argument('--lr', type=float, default=0.0002,
-                        help='initial learning rate for adam')
-    parser.add_argument('--seed', type=int, default=123,
-                        help='random seed to use')
-
-    # Tensorboard parameters
-    parser.add_argument('--tensorboard', action='store_true',
-                        help='use tensorboard?')
-    parser.add_argument(
-        '--hookbin', help='hookbin url for capturing tensorboard url')
-    parser.add_argument(
-        '--auth_token', help='auth token for ngrok for limits')
-    parser.add_argument('--silent', action='store_true',
-                        help='silent the tqdm output')
-
-    opt = parser.parse_args()
+    opt = get_arguments()
 
     if opt.cuda and not torch.cuda.is_available():
         raise Exception("No GPU found, please run without --cuda")
@@ -212,6 +128,33 @@ if __name__ == '__main__':
 
             mkdir(train_dir_copy)
 
+    training_data_loader.dataset.set_load_compressed(False)  # for speedup
+
+    # Calculating mean and standard deviation for dataset
+
+    nimages = 0
+    mean = 0.0
+    var = 0.0
+    for iteration, data in enumerate(training_data_loader, 1):
+        batch = data[0]
+        # Rearrange batch to be the shape of [B, C, W * H]
+        batch = batch.view(batch.size(0), batch.size(1), -1)
+        # Update total number of images
+        nimages += batch.size(0)
+        # Compute mean and std here
+        mean += batch.mean(2).sum(0)
+        var += batch.var(2).sum(0)
+
+    mean /= nimages
+    var /= nimages
+    std = torch.sqrt(var)
+
+    if opt.tensorboard:
+        writer.add_text('logs', f"Found mean: {mean}, std: {std}", 0)
+
+    training_mean = (*mean,)
+    training_std = (*std,)
+
     num_epoch = opt.nepoch + 1
     for epoch in range(start_epoch, num_epoch):
         if opt.epoch_limit > 0 and epoch > opt.epoch_limit:
@@ -236,12 +179,13 @@ if __name__ == '__main__':
 
             model.Encoder.train()
             for iteration, batch in bar_enc:
-                # if iteration > math.floor(data_len * .4):
-                #     print("\nHas been limited")
-                #     break
-
                 # Train with random cropped image
                 image = batch[0+3].to(device)
+
+                # Normalize the input
+                if opt.std:
+                    image = normalize(
+                        image, mean=training_mean, std=training_std)
 
                 opt_encoder.zero_grad()  # make gradient zero
 
@@ -257,6 +201,9 @@ if __name__ == '__main__':
                 t_warm_losses += compression_losses.item()
 
                 if opt.debug:
+                    if opt.std:
+                        encoded = inverse_normalize(
+                            encoded, mean=training_mean, std=training_std)
                     save_img_version(encoded.detach().squeeze(
                         0).cpu(), 'interm/warm.png')
 
@@ -270,9 +217,9 @@ if __name__ == '__main__':
 
             if opt.tensorboard:
                 writer.add_text(
-                    'logs/s', f'Warming loss: {t_warm_losses/max(1, data_len)}')
+                    'logs', f'Warming loss: {t_warm_losses/max(1, data_len)}')
                 writer.add_text(
-                    'logs/s', f'Connection weights after training: {model.Encoder.connection_weights.item()}')
+                    'logs', f'Connection weights after training: {model.Encoder.connection_weights.item()}')
 
             # Re enable after the warming
             model.Encoder.connection_weights.requires_grad = True
@@ -291,7 +238,7 @@ if __name__ == '__main__':
 
         if opt.tensorboard:
             writer.add_text(
-                'logs/s', f'Epoch {epoch} - Compressing Image', epoch)
+                'logs', f'Epoch {epoch} - Compressing Image', epoch)
 
         model.Encoder.eval()
 
@@ -303,11 +250,15 @@ if __name__ == '__main__':
                 image = batch[0].to(device)
                 compressed_path = batch[2]
 
-                # Encoder [-1, 1], Compressed: [0, 1]. Correction -> Encoder output [0, 1]
+                if opt.std:
+                    image = normalize(
+                        image, mean=training_mean, std=training_std)
+
                 encoder_output = model.Encoder(image)
 
-                # Convert from [-1, 1] to [0, 1]. Encoder output has [0, 1]
-                # compressed_image = (encoder_output + 1.) / 2.
+                if opt.std:
+                    encoder_output = inverse_normalize(
+                        encoder_output, mean=training_mean, std=training_std)
                 compressed_image = model.compress(encoder_output.detach())
 
                 for i in range(compressed_image.size(0)):
@@ -333,7 +284,7 @@ if __name__ == '__main__':
 
         if opt.tensorboard:
             writer.add_text(
-                'logs/s', f'Epoch {epoch} - Training Generator', epoch)
+                'logs', f'Epoch {epoch} - Training Generator', epoch)
 
         model.Generator.train()
         model.Discriminator.train()
@@ -342,6 +293,11 @@ if __name__ == '__main__':
             # try to expanding the image
             image = batch[0+3].to(device)
             compressed_image = batch[1+3].to(device)
+
+            if opt.std:
+                image = normalize(image, mean=training_mean, std=training_std)
+                compressed_image = normalize(
+                    compressed_image, mean=training_mean, std=training_std)
 
             # because gradients for generator disabled when training Encoder
             # here we make generator can calculate gradients again!
@@ -415,19 +371,20 @@ if __name__ == '__main__':
                                   max(1, iteration), num)
 
             if opt.debug:
+                if opt.std:
+                    expanded = inverse_normalize(
+                        expanded, mean=training_mean, std=training_std)
+                    image = inverse_normalize(
+                        image, mean=training_mean, std=training_std)
+                    compressed_image = inverse_normalize(
+                        compressed_image, mean=training_mean, std=training_std)
+
                 save_img_version(expanded.detach().squeeze(
                     0).cpu(), 'interm/generated.png')
                 save_img_version(image.detach().squeeze(
                     0).cpu(), 'interm/inputed.png')
                 save_img_version(compressed_image.detach().squeeze(
                     0).cpu(), 'interm/compress.png')
-
-                if opt.warm:
-                    assert(list(model.Encoder.parameters())
-                           [1].grad is not None)
-                assert(list(model.Generator.parameters())[0].grad is not None)
-                assert(list(model.Discriminator.parameters())
-                       [0].grad is not None)
 
             if not opt.silent:
                 bar_ex.set_description(desc='itr: %d/%d [%3d/%3d] [D: %.6f] [G: %.6f] [Dec: %.6f] Training Generator' % (
@@ -439,7 +396,7 @@ if __name__ == '__main__':
 
         if opt.tensorboard:
             writer.add_text(
-                'logs/s', f'Epoch {epoch} - Training Encoder', epoch)
+                'logs', f'Epoch {epoch} - Training Encoder', epoch)
 
         bar_enc = tqdm(enumerate(training_data_loader, 1),
                        total=data_len, disable=opt.silent)
@@ -448,18 +405,18 @@ if __name__ == '__main__':
 
         training_data_loader.dataset.set_load_compressed(False)  # for speedup
 
-        before_encoder_weights = None
-        if opt.debug:
-            before_encoder_weights = list(
-                model.Encoder.parameters())[1].clone()
-
         # Updating encoding parameters here
         model.Encoder.train()
         model.Generator.train()
         for iteration, batch in bar_enc:
             # Get random cropped image
             image = batch[0+3].to(device)
-            # compressed_image = batch[1+3].to(device)
+            compressed_image = batch[1+3].to(device)
+
+            if opt.std:
+                image = normalize(image, mean=training_mean, std=training_std)
+                compressed_image = normalize(
+                    compressed_image, mean=training_mean, std=training_std)
 
             # G requires no gradient when optimizing E
             model.set_requires_grad(model.Generator, False)
@@ -470,9 +427,9 @@ if __name__ == '__main__':
             encoded = model.Encoder(image)
 
             # <=== HERE THE ENCODER OVERFIT THE GENERATOR
-            # encoded_masked = 0.5 * (encoded + compressed_image)
+            encoded_masked = 0.5 * (encoded + compressed_image)
 
-            generated = model.Generator(encoded)
+            generated = model.Generator(encoded_masked)
 
             compression_losses = model.compression_loss(generated, image) * 0.5
             compression_losses.backward()
@@ -499,6 +456,14 @@ if __name__ == '__main__':
                                   max(1, iteration), num)
 
             if opt.debug:
+                if opt.std:
+                    encoded = inverse_normalize(
+                        encoded, mean=training_mean, std=training_std)
+                    image = inverse_normalize(
+                        image, mean=training_mean, std=training_std)
+                    generated = inverse_normalize(
+                        generated, mean=training_mean, std=training_std)
+
                 save_img_version(encoded.detach().squeeze(
                     0).cpu(), 'interm/encoder.png')
                 save_img_version(image.detach().squeeze(
@@ -511,15 +476,9 @@ if __name__ == '__main__':
 
                 print(model.Encoder.connection_weights)
 
-        if opt.debug:
-            after_encoder_weights = list(model.Encoder.parameters())[1].clone()
-
-            assert(torch.equal(before_encoder_weights.data,
-                               after_encoder_weights.data) == False)
-
         if opt.tensorboard:
             writer.add_text(
-                'logs/s', f'Connection weights after training: {model.Encoder.connection_weights.item()}', epoch)
+                'logs', f'Connection weights after training: {model.Encoder.connection_weights.item()}', epoch)
 
         print(
             f'Connection weights after training: {model.Encoder.connection_weights.item()}')
@@ -544,7 +503,7 @@ if __name__ == '__main__':
 
         if opt.tensorboard:
             writer.add_text(
-                'logs/s', f'Epoch {epoch} - Validation Model', epoch)
+                'logs', f'Epoch {epoch} - Validation Model', epoch)
 
         testing_data_loader.dataset.set_load_compressed(False)  # for speed up
 
@@ -556,27 +515,36 @@ if __name__ == '__main__':
             with torch.no_grad():
                 input = batch[0+3].to(device)
 
+                if opt.std:
+                    input = normalize(
+                        input, mean=training_mean, std=training_std)
+
                 encoder_output = model.Encoder(input)
 
                 # compress the image from encoder
                 # compressed_image = model.compress(prepare_for_compression_from_normalized_input(
                 # encoder_output.detach().squeeze(0).cpu()))
 
+                if opt.std:
+                    encoder_output = inverse_normalize(
+                        encoder_output, mean=training_mean, std=training_std)
+
                 compressed_image = model.compress(encoder_output.detach())
 
-                # Output from compress is [0, 1], before wi normalize, we must normalize this tensor to [-1, 0] first,
-                # we can convert this to image and back to tensor
-                # compressed_image = tensor2img(compressed_image)
-                # compressed_image = transforms.ToTensor()(compressed_image)
+                if opt.std:
+                    compressed_image = normalize(
+                        compressed_image, mean=training_mean, std=training_std)
 
-                # then normalize the image
-                # compressed_image_normalized = transforms.Normalize(
-                #     (0.5, 0.5, 0.5), (0.5, 0.5, 0.5))(compressed_image)
-                # Add batch size and attach to device
-                # compressed_image_normalized = compressed_image_normalized.unsqueeze(0).to(device)
-
-                # compressed_image_normalized = normalize(compressed_image)
                 expanded_image = model.Generator(compressed_image)
+
+                if opt.std:
+                    # Unormalize all mage after this process
+                    input = inverse_normalize(
+                        input, mean=training_mean, std=training_std)
+                    compressed_image = inverse_normalize(
+                        compressed_image, mean=training_mean, std=training_std)
+                    expanded_image = inverse_normalize(
+                        expanded_image, mean=training_mean, std=training_std)
 
                 if r_intermedient == (iteration-1):
                     if not os.path.exists("interm"):
@@ -586,9 +554,6 @@ if __name__ == '__main__':
                         [input.detach().squeeze(0), compressed_image.detach().squeeze(0), expanded_image.detach().squeeze(0)])
 
                     if opt.tensorboard:
-                        # Change from [-1, 1] to [0, 1]
-                        # image_tensor_optimizer = (image_tensor + 1.) / 2.
-
                         writer.add_image(
                             'testing_image_sample', image_tensor, epoch)
 
@@ -605,10 +570,10 @@ if __name__ == '__main__':
                 _tmp_psnr_expanded = psnr(input_img, expanded_img)
                 _tmp_ssim_expanded = ssim(expanded_img, input_img)
 
-                if _tmp_psnr_compressed >= Inf:
+                if _tmp_psnr_compressed >= Infinity:
                     count_inf += 1
 
-                if _tmp_psnr_expanded >= Inf:
+                if _tmp_psnr_expanded >= Infinity:
                     count_inf += 1
 
                 psnr_lists.append(_tmp_psnr_expanded)
@@ -701,7 +666,7 @@ if __name__ == '__main__':
 
             if mean_expanding_ssim >= max_ssim:
                 notice = f"Found new max SSIM on epoch {epoch}. {max_ssim} -> {mean_expanding_ssim}"
-                writer.add_text('logs/s', notice, epoch)
+                writer.add_text('logs', notice, epoch)
                 print(notice)
 
                 max_ssim = mean_expanding_ssim
