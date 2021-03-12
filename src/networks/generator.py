@@ -167,7 +167,7 @@ class ResidualLayer(nn.Module):
     def __init__(self, in_ch, out_ch, kernel_size, stride):
         super(ResidualLayer, self).__init__()
 
-        self.activation = nn.ReLU()
+        self.activation = nn.PReLU()
         self.conv1 = ConvLayer(in_ch, out_ch, kernel_size,
                                stride, activation='none')
 
