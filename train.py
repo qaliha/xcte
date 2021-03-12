@@ -429,9 +429,9 @@ if __name__ == '__main__':
             encoded = model.Encoder(image)
 
             # <=== HERE THE ENCODER OVERFIT THE GENERATOR
-            # encoded_masked = 0.5 * (encoded + compressed_image)
+            encoded_masked = 0.5 * (encoded + compressed_image)
 
-            generated = model.Generator(encoded)
+            generated = model.Generator(encoded_masked)
 
             compression_losses = model.compression_loss(generated, image) * 0.5
             compression_losses.backward()
