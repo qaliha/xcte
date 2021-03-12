@@ -64,7 +64,7 @@ class Generator(nn.Module):
             n_feature, n_feature, 3, 1, activation='leaky')
 
         model_deconv_ = [ConvLayer(n_feature, n_feature, 3, 1)]
-        model_deconv_ += [ConvLayer(n_feature, 3, 3, 1)]
+        model_deconv_ += [ConvLayer(n_feature, 3, 3, 1, activation='skip')]
 
         # model_deconv_ = [ConvLayer(n_feature, 3, 3, 1)]
         # model_deconv_ += [ConvLayer(3, 3, 3, 1, activation='tanh', norm='skip')]
@@ -92,6 +92,7 @@ class ConvTransposeLayer(nn.Module):
         self.conv_layer = nn.ConvTranspose2d(
             in_ch, out_ch, kernel_size=kernel_size, stride=stride, **cnn_kwargs)
 
+        self.normalization = nn.BatchNorm2d(out_ch)
         # activation
         # self.activation = nn.PReLU()
         # self.normalization = channel.ChannelNorm2D_wrap(
@@ -99,7 +100,7 @@ class ConvTransposeLayer(nn.Module):
 
     def forward(self, x):
         x = self.conv_layer(x)
-        # x = self.normalization(x)
+        x = self.normalization(x)
         # x = self.activation(x)
 
         return x
