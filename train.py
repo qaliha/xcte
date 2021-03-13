@@ -405,7 +405,7 @@ if __name__ == '__main__':
 
         t_compression_losses = 0
 
-        training_data_loader.dataset.set_load_compressed(False)  # for speedup
+        training_data_loader.dataset.set_load_compressed(True)  # for speedup
 
         # Updating encoding parameters here
         model.Encoder.train()
