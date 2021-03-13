@@ -58,19 +58,6 @@ for image_name in image_filenames:
 
     compressed_image = model.compress(encoder_output.detach())
 
-    # compressed_image = model.compress(prepare_for_compression_from_normalized_input(
-    #     encoder_output.detach().squeeze(0).cpu()))
-    # compressed_image = tensor2img(compressed_image)
-    # compressed_image = transforms.ToTensor()(compressed_image)
-
-    # # then normalize the image
-    # compressed_image_normalized = transforms.Normalize(
-    #     (0.5, 0.5, 0.5), (0.5, 0.5, 0.5))(compressed_image)
-    # # Add batch size and attach to device
-    # compressed_image_normalized = compressed_image_normalized.unsqueeze(
-    #     0).to(device)
-
-    # compressed_image_normalized = normalize(compressed_image)
     expanded_image = model.Generator(compressed_image)
 
     if not os.path.exists("checkpoints/{}/results".format(opt.checkpoint)):

@@ -11,7 +11,7 @@ from os.path import join
 from tqdm import tqdm
 from loader_data import get_test_set, get_training_set
 from src.utils.metric import psnr, ssim
-from src.utils.tensor import save_img, save_img_version, tensor2img
+from src.utils.tensor import save_img, save_img_version, tensor2img, dclamp
 from src.utils.utils import load_checkpoint, normalize, inverse_normalize
 from src.scheduler import get_scheduler, update_learning_rate
 from src.model import Model
@@ -429,7 +429,7 @@ if __name__ == '__main__':
 
             # new method
             if opt.optimized_encoder:
-                encoded = torch.clamp(encoded, 0, 1)
+                encoded = dclamp(encoded, 0, 1)
                 encoded = 0.5 * (encoded + compressed_image)
 
             generated = model.Generator(encoded)
@@ -552,8 +552,9 @@ if __name__ == '__main__':
                     if not os.path.exists("interm"):
                         os.mkdir("interm")
 
+                    expanded_image_clamped = torch.clamp(expanded_image, 0, 1)
                     image_tensor = torchvision.utils.make_grid(
-                        [input.detach().squeeze(0), compressed_image.detach().squeeze(0), expanded_image.detach().squeeze(0)])
+                        [input.detach().squeeze(0), compressed_image.detach().squeeze(0), expanded_image_clamped.detach().squeeze(0)])
 
                     if opt.tensorboard:
                         writer.add_image(
