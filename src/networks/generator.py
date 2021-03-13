@@ -13,9 +13,16 @@ class Generator(nn.Module):
 
         self.n_blocks = n_blocks
 
+        norm_kwargs = dict(momentum=0.1, affine=True,
+                           track_running_stats=False)
+
         model_conv_ = [PixelUnshuffle(2)]
         # Train how to upscaling image
-        model_conv_ += [ConvTransposeLayer(12, 12, 3, 2)]
+        model_conv_ += [
+            nn.UpsamplingBilinear2d(scale_factor=2),
+            channel.ChannelNorm2D_wrap(12, **norm_kwargs)
+        ]
+
         model_conv_ += [ConvLayer(12, n_feature, 3, 1)]
 
         self.conv_block_init = nn.Sequential(*model_conv_)
@@ -37,7 +44,7 @@ class Generator(nn.Module):
             n_feature, n_feature, 3, 1, activation='leaky')
 
         model_deconv_ = [ConvLayer(n_feature, n_feature, 3, 1)]
-        model_deconv_ += [ConvLayer(n_feature, 3, 5,
+        model_deconv_ += [ConvLayer(n_feature, 3, 3,
                                     1, norm='none', activation='none')]
 
         # model_deconv_ = [ConvLayer(n_feature, 3, 3, 1)]
