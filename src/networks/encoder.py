@@ -13,21 +13,24 @@ class FeatureExtractor(nn.Module):
 
         n_features = 64
 
-        model = [ConvLayer(3, n_features, 3, 1, norm='none')]
-        model += [ConvLayer(n_features, n_features, 3, 1, norm='none')]
+        self.conv_block_1 = ConvLayer(3, n_features, 3, 1, norm='none')
+        self.conv_block_2 = ConvLayer(
+            n_features, n_features, 3, 1, norm='none')
         # Ok for now remove this and copy the reference networks
         # model += [ConvLayer(n_features, n_features, 3, 1, norm='skip')]
-        model += [ConvLayer(n_features, 12, 3, 2, norm='none',
-                            activation='none', padding='reflection', reflection_padding=(0, 1, 1, 0))]
+        self.conv_block_downsample = ConvLayer(n_features, 12, 3, 2, norm='none',
+                                               activation='none', padding='reflection', reflection_padding=(0, 1, 1, 0))
 
-        model += [nn.PixelShuffle(2)]
-
-        self.model = nn.Sequential(*model)
+        self.shuffle = nn.PixelShuffle(2)
 
     def forward(self, x):
-        y = self.model(x)
+        out = self.conv_block_1(x)
+        out = self.conv_block_2(out)
 
-        return y
+        downsampled = self.conv_block_downsample(out)
+        shuffled = self.shuffle(downsampled)
+
+        return shuffled
 
 
 class Encoder(nn.Module):
