@@ -234,6 +234,8 @@ if __name__ == '__main__':
 
         local_train_logs_holder = list()
 
+        training_data_loader.dataset.set_load_compressed(
+            False)  # don't load b for speedup
         data_len = len(training_data_loader)
         bar = tqdm(enumerate(training_data_loader, 1),
                    total=data_len, disable=opt.silent)
@@ -244,8 +246,6 @@ if __name__ == '__main__':
 
         model.Encoder.eval()
 
-        training_data_loader.dataset.set_load_compressed(
-            False)  # don't load b for speedup
         for iteration, batch in bar:
             with torch.no_grad():
                 # compress original image (not cropped to get full image)
@@ -400,12 +400,11 @@ if __name__ == '__main__':
             writer.add_text(
                 'logs', f'Epoch {epoch} - Training Encoder', epoch)
 
+        training_data_loader.dataset.set_load_compressed(True)  # for speedup
         bar_enc = tqdm(enumerate(training_data_loader, 1),
                        total=data_len, disable=opt.silent)
 
         t_compression_losses = 0
-
-        training_data_loader.dataset.set_load_compressed(True)  # for speedup
 
         # Updating encoding parameters here
         model.Encoder.train()
@@ -472,9 +471,8 @@ if __name__ == '__main__':
                     0).cpu(), 'interm/inputed.png')
                 save_img_version(generated.detach().squeeze(
                     0).cpu(), 'interm/generated.png')
-
-                # save_img_version(encoded_masked.detach().squeeze(
-                #     0).cpu(), 'interm/masked.png')
+                save_img_version(encoded_masked.detach().squeeze(
+                    0).cpu(), 'interm/masked.png')
 
                 print(model.Encoder.connection_weights)
 
