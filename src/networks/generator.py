@@ -16,9 +16,9 @@ class Generator(nn.Module):
         norm_kwargs = dict(momentum=0.1, affine=True,
                            track_running_stats=False)
 
-        self.pre_normalization = channel.ChannelNorm2D_wrap(3, **norm_kwargs)
         self.unshuffle = PixelUnshuffle(2)
         self.upsampling = nn.UpsamplingBilinear2d(scale_factor=2)
+        self.pre_normalization = nn.BatchNorm2d(12)
 
         self.conv_block_1 = ConvLayer(12, n_feature, 3, 1)
         self.conv_block_before_resblock = ConvLayer(
@@ -38,6 +38,7 @@ class Generator(nn.Module):
     def forward(self, x):
         head = self.unshuffle(x)
         head = self.upsampling(head)
+        head = self.pre_normalization(head)
         head = self.conv_block_1(head)
         head = self.conv_block_before_resblock(head)
 
@@ -79,7 +80,7 @@ class Generator(nn.Module):
 
 
 class ConvLayer(nn.Module):
-    def __init__(self, in_ch, out_ch, kernel_size, stride, padding='default', activation='prelu', norm='channel', reflection_padding=3, cnn_kwargs=dict()):
+    def __init__(self, in_ch, out_ch, kernel_size, stride, padding='default', activation='prelu', norm='batch', reflection_padding=3, cnn_kwargs=dict()):
         super(ConvLayer, self).__init__()
 
         # padding
