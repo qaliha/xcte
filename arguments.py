@@ -50,6 +50,8 @@ def get_arguments():
                         help='silent the tqdm output')
     parser.add_argument('--std', action='store_true',
                         help='standarize the input?')
+    parser.add_argument('--optimized_encoder', action='store_true',
+                        help='using new encoder logic?')
 
     opt = parser.parse_args()
 

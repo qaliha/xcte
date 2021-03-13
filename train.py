@@ -212,7 +212,7 @@ if __name__ == '__main__':
                     print(model.Encoder.connection_weights)
 
                 if not opt.silent:
-                    bar_enc.set_description(desc='itr: %d/%d [%3d/%3d] [L: %.6f] Warming Encoder' % (
+                    bar_enc.set_description(desc='itr: %d/%d [%3d/%3d] [L: %.8f] Warming Encoder' % (
                         iteration, data_len, epoch, num_epoch -
                         1, t_warm_losses/max(1, iteration)
                     ))
@@ -389,7 +389,7 @@ if __name__ == '__main__':
                     0).cpu(), 'interm/compress.png')
 
             if not opt.silent:
-                bar_ex.set_description(desc='itr: %d/%d [%3d/%3d] [D: %.6f] [G: %.6f] [Dec: %.6f] Training Generator' % (
+                bar_ex.set_description(desc='itr: %d/%d [%3d/%3d] [D: %.8f] [G: %.8f] [Dec: %.8f] Training Generator' % (
                     iteration, data_len, epoch, num_epoch - 1,
                     t_discriminator_loss/max(1, iteration),
                     t_generator_losses/max(1, iteration),
@@ -427,10 +427,12 @@ if __name__ == '__main__':
             # calculate gradient for E
             encoded = model.Encoder(image)
 
-            # <=== HERE THE ENCODER OVERFIT THE GENERATOR
-            encoded_masked = 0.5 * (encoded + compressed_image)
+            # new method
+            if opt.optimized_encoder:
+                encoded = torch.clamp(encoded, 0, 1)
+                encoded = 0.5 * (encoded + compressed_image)
 
-            generated = model.Generator(encoded_masked)
+            generated = model.Generator(encoded)
 
             compression_losses = model.compression_loss(generated, image) * 0.5
             compression_losses.backward()
@@ -445,7 +447,7 @@ if __name__ == '__main__':
                     t_compression_losses/max(1, iteration))
 
             if not opt.silent:
-                bar_enc.set_description(desc='itr: %d/%d [%3d/%3d] [E: %.6f] Training Encoder' % (
+                bar_enc.set_description(desc='itr: %d/%d [%3d/%3d] [E: %.8f] Training Encoder' % (
                     iteration, data_len, epoch, num_epoch - 1,
                     t_compression_losses/max(1, iteration)
                 ))
@@ -471,8 +473,8 @@ if __name__ == '__main__':
                     0).cpu(), 'interm/inputed.png')
                 save_img_version(generated.detach().squeeze(
                     0).cpu(), 'interm/generated.png')
-                save_img_version(encoded_masked.detach().squeeze(
-                    0).cpu(), 'interm/masked.png')
+                # save_img_version(encoded_masked.detach().squeeze(
+                #     0).cpu(), 'interm/masked.png')
 
                 print(model.Encoder.connection_weights)
 
