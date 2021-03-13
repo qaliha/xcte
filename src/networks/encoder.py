@@ -13,7 +13,7 @@ class FeatureExtractor(nn.Module):
 
         n_features = 64
 
-        model = [ConvLayer(3, n_features, 5, 1, norm='none')]
+        model = [ConvLayer(3, n_features, 3, 1, norm='none')]
         model += [ConvLayer(n_features, n_features, 3, 1, norm='none')]
         # Ok for now remove this and copy the reference networks
         # model += [ConvLayer(n_features, n_features, 3, 1, norm='skip')]
@@ -48,8 +48,10 @@ class Encoder(nn.Module):
         y = self.feature_net(x)
         out = F.normalize(y, p=2, dim=1)
 
-        out = self.connection_weights * inp + \
-            (1 - self.connection_weights) * out
+        connection_restricted = self.connection_weights.sigmoid()
+
+        out = connection_restricted * inp + \
+            (1 - connection_restricted) * out
 
         return out
 

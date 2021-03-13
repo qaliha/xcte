@@ -11,6 +11,8 @@ class Generator(nn.Module):
     def __init__(self, n_blocks=6, n_feature=64):
         super(Generator, self).__init__()
 
+        self.n_blocks = n_blocks
+
         model_conv_ = [PixelUnshuffle(2)]
         # Train how to upscaling image
         model_conv_ += [ConvTransposeLayer(12, 12, 3, 2)]
@@ -21,11 +23,15 @@ class Generator(nn.Module):
         self.before_resenet_block = ConvLayer(
             n_feature, n_feature, 3, 1, activation='leaky')
 
-        model_resblocks_ = []
-        for i in range(n_blocks):
-            model_resblocks_ += [ResidualLayer(n_feature, n_feature, 3, 1)]
+        # model_resblocks_ = []
+        # for i in range(n_blocks):
+        #     model_resblocks_ += [ResidualLayer(n_feature, n_feature, 3, 1)]
 
-        self.model_resblocks = nn.Sequential(*model_resblocks_)
+        # self.model_resblocks = nn.Sequential(*model_resblocks_)
+
+        for m in range(n_blocks):
+            resblock_m = ResidualLayer(n_feature, n_feature, 3, 1)
+            self.add_module(f'resblock_{str(m)}', resblock_m)
 
         self.after_resnet_block = ConvLayer(
             n_feature, n_feature, 3, 1, activation='leaky')
@@ -42,14 +48,22 @@ class Generator(nn.Module):
     def forward(self, x):
         head = self.conv_block_init(x)
         head = self.before_resenet_block(head)
-        x = self.model_resblocks(head)
+        # out = self.model_resblocks(head)
         # res = self.model_resout(res)
+
+        for m in range(self.n_blocks):
+            resblock_m = getattr(self, f'resblock_{str(m)}')
+            if m == 0:
+                x = resblock_m(head)
+            else:
+                x = resblock_m(x)
+
         x += head
         x = self.after_resnet_block(x)
 
-        x = self.conv_block_out(x)
+        out = self.conv_block_out(x)
 
-        return x
+        return out
 
 
 class ConvTransposeLayer(nn.Module):
@@ -134,9 +148,8 @@ class ResidualLayer(nn.Module):
     def __init__(self, in_ch, out_ch, kernel_size, stride):
         super(ResidualLayer, self).__init__()
 
-        self.activation = nn.PReLU()
         self.conv1 = ConvLayer(in_ch, out_ch, kernel_size,
-                               stride, activation='none')
+                               stride)
 
         self.conv2 = ConvLayer(out_ch, out_ch, kernel_size,
                                stride, activation='none')
@@ -146,9 +159,7 @@ class ResidualLayer(nn.Module):
         res = self.conv1(x)
         res = self.conv2(res)
 
-        res += identity_map
-        res = self.activation(res)
-        return res
+        return torch.add(res, identity_map)
 
 
 # class DeconvLayer(nn.Module):
