@@ -432,7 +432,7 @@ if __name__ == '__main__':
             # new method
             if opt.optimized_encoder:
                 encoded = dclamp(encoded, 0, 1)
-                encoded = 0.5 * (encoded + compressed_image)
+                encoded = 0.5 * encoded + 0.5 * compressed_image
 
             generated = model.Generator(encoded)
 

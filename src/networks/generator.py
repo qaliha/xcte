@@ -14,14 +14,16 @@ class Generator(nn.Module):
         self.n_blocks = n_blocks
 
         self.unshuffle = PixelUnshuffle(2)
-        self.upsampling = nn.UpsamplingBilinear2d(scale_factor=2)
+        # self.upsampling = nn.UpsamplingBilinear2d(scale_factor=2)
+        self.conv_init = ConvTransposeLayer(12, 12, 2, 2)
+
         # self.pre_normalization = nn.BatchNorm2d(12)
 
         self.conv_block_1 = ConvLayer(12, n_feature, 3, 1)
         # self.conv_block_before_resblock = ConvLayer(
         #     n_feature, n_feature, 3, 1, activation='leaky')
 
-        for m in range(n_blocks):
+        for m in range(self.n_blocks):
             resblock_m = ResidualLayer(n_feature, n_feature, 3, 1)
             self.add_module(f'resblock_{str(m)}', resblock_m)
 
@@ -29,12 +31,13 @@ class Generator(nn.Module):
         #     n_feature, n_feature, 3, 1, activation='leaky')
 
         self.conv_block_2 = ConvLayer(n_feature, n_feature, 3, 1)
+        self.conv_block_3 = ConvLayer(n_feature, 12, 3, 1)
         self.conv_block_out = ConvLayer(
-            n_feature, 3, 3, 1, norm='none', activation='none')
+            12, 3, 3, 1, norm='none', activation='none')
 
     def forward(self, x):
         head = self.unshuffle(x)
-        head = self.upsampling(head)
+        head = self.conv_init(head)
         # head = self.pre_normalization(head)
         head = self.conv_block_1(head)
         # head = self.conv_block_before_resblock(head)
@@ -49,31 +52,23 @@ class Generator(nn.Module):
         x += head
         # x = self.conv_block_after_resblock(x)
         x = self.conv_block_2(x)
+        x = self.conv_block_3(x)
         out = self.conv_block_out(x)
 
         return out
 
 
-# class ConvTransposeLayer(nn.Module):
-#     def __init__(self, in_ch, out_ch, kernel_size, stride, cnn_kwargs=dict()):
-#         super(ConvTransposeLayer, self).__init__()
+class ConvTransposeLayer(nn.Module):
+    def __init__(self, in_ch, out_ch, kernel_size, stride, cnn_kwargs=dict()):
+        super(ConvTransposeLayer, self).__init__()
+        # convolution
+        self.conv_layer = nn.ConvTranspose2d(
+            in_ch, out_ch, kernel_size=kernel_size, stride=stride, **cnn_kwargs)
 
-#         # convolution
-#         self.conv_layer = nn.ConvTranspose2d(
-#             in_ch, out_ch, kernel_size=kernel_size, stride=stride, padding=1, output_padding=1, **cnn_kwargs)
+    def forward(self, x):
+        out = self.conv_layer(x)
 
-#         self.pre_norm = channel.ChannelNorm2D_wrap(
-#             in_ch, momentum=0.1, affine=True, track_running_stats=False)
-#         self.normalization = channel.ChannelNorm2D_wrap(
-#             out_ch, momentum=0.1, affine=True, track_running_stats=False)
-
-#     def forward(self, x):
-#         # normalize the input
-#         out = self.pre_norm(x)
-#         out = self.conv_layer(out)
-#         out = self.normalization(out)
-
-#         return out
+        return out
 
 
 class ConvLayer(nn.Module):
