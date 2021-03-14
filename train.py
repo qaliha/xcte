@@ -11,7 +11,7 @@ from os.path import join
 from tqdm import tqdm
 from loader_data import get_test_set, get_training_set
 from src.utils.metric import psnr, ssim
-from src.utils.tensor import save_img, save_img_version, tensor2img, dclamp
+from src.utils.tensor import save_img, save_img_version, tensor2img
 from src.utils.utils import initialize_parameters, load_checkpoint, normalize, inverse_normalize
 from src.scheduler import get_scheduler, update_learning_rate
 from src.model import Model
@@ -431,7 +431,7 @@ if __name__ == '__main__':
 
             # new method
             if opt.optimized_encoder:
-                encoded = dclamp(encoded, 0, 1)
+                # encoded = dclamp(encoded, 0, 1)
                 encoded = 0.5 * encoded + 0.5 * compressed_image
 
             generated = model.Generator(encoded)
