@@ -345,7 +345,7 @@ if __name__ == '__main__':
                 D_real, D_gen, D_real_logits, D_gen_logits, 'generator_loss')
 
             decoder_losses = model.restruction_loss(expanded, image)
-            generator_losses = gan_losses * 0.0001 + decoder_losses * 0.5
+            generator_losses = gan_losses * 0.00001 + decoder_losses * 0.5
 
             generator_losses.backward()
 
