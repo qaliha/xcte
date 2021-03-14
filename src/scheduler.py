@@ -1,7 +1,7 @@
 from torch.optim import lr_scheduler
 
 
-def get_scheduler(optimizer, opt, option='lambda', step_length=15):
+def get_scheduler(optimizer, opt, option='lambda', step_length=5):
     scheduler = None
     if option == 'lambda':
         def lambda_rule(epoch):
@@ -10,7 +10,7 @@ def get_scheduler(optimizer, opt, option='lambda', step_length=15):
         scheduler = lr_scheduler.LambdaLR(optimizer, lr_lambda=lambda_rule)
     elif option == 'step':
         scheduler = lr_scheduler.StepLR(
-            optimizer, step_size=step_length, gamma=0.1)
+            optimizer, step_size=step_length, gamma=0.5)
 
     return scheduler
 

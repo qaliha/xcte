@@ -13,9 +13,6 @@ class Generator(nn.Module):
 
         self.n_blocks = n_blocks
 
-        norm_kwargs = dict(momentum=0.1, affine=True,
-                           track_running_stats=False)
-
         self.unshuffle = PixelUnshuffle(2)
         self.upsampling = nn.UpsamplingBilinear2d(scale_factor=2)
         # self.pre_normalization = nn.BatchNorm2d(12)

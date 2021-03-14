@@ -5,10 +5,35 @@ import torchvision.transforms as transforms
 from numpy.core.numeric import Infinity
 
 
-def initialize_parameters_kaiming(m):
-    if isinstance(m, nn.Conv2d):
-        nn.init.kaiming_normal_(m.weight, nonlinearity='relu')
-        nn.init.zeros_(m.bias)
+def initialize_parameters(m, std=0.001):
+    if type(m) == nn.Conv2d:
+        nn.init.normal_(m.weight.data, 0.0, std)
+        if m.bias is not None:
+            m.bias.data.zero_()
+    elif type(m) == nn.Linear:
+        nn.init.normal_(m.weight.data, 0.0, std)
+        if m.bias is not None:
+            m.bias.data.zero_()
+    elif type(m) == nn.BatchNorm2d:
+        nn.init.normal_(m.weight.data, 1.0, std)
+        nn.init.constant_(m.bias.data, 0.0)
+
+
+def initialize_parameters_kaiming(m, scale=0.1):
+    classname = m.__class__.__name__
+    if type(m) == nn.Conv2d:
+        nn.init.kaiming_normal_(m.weight.data, a=0, mode='fan_in')
+        m.weight.data *= scale
+        if m.bias is not None:
+            m.bias.data.zero_()
+    elif type(m) == nn.Linear:
+        nn.init.kaiming_normal_(m.weight.data, a=0, mode='fan_in')
+        m.weight.data *= scale
+        if m.bias is not None:
+            m.bias.data.zero_()
+    elif type(m) == nn.BatchNorm2d:
+        nn.init.constant_(m.weight.data, 1.0)
+        nn.init.constant_(m.bias.data, 0.0)
 
 
 class NormalizeInverse(transforms.Normalize):
