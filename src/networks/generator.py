@@ -21,15 +21,15 @@ class Generator(nn.Module):
         # self.pre_normalization = nn.BatchNorm2d(12)
 
         self.conv_block_1 = ConvLayer(12, n_feature, 3, 1)
-        self.conv_block_before_resblock = ConvLayer(
-            n_feature, n_feature, 3, 1, activation='leaky')
+        # self.conv_block_before_resblock = ConvLayer(
+        #     n_feature, n_feature, 3, 1, activation='leaky')
 
         for m in range(n_blocks):
             resblock_m = ResidualLayer(n_feature, n_feature, 3, 1)
             self.add_module(f'resblock_{str(m)}', resblock_m)
 
-        self.conv_block_after_resblock = ConvLayer(
-            n_feature, n_feature, 3, 1, activation='leaky')
+        # self.conv_block_after_resblock = ConvLayer(
+        #     n_feature, n_feature, 3, 1, activation='leaky')
 
         self.conv_block_2 = ConvLayer(n_feature, n_feature, 3, 1)
         self.conv_block_out = ConvLayer(
@@ -40,7 +40,7 @@ class Generator(nn.Module):
         head = self.upsampling(head)
         # head = self.pre_normalization(head)
         head = self.conv_block_1(head)
-        head = self.conv_block_before_resblock(head)
+        # head = self.conv_block_before_resblock(head)
 
         for m in range(self.n_blocks):
             resblock_m = getattr(self, f'resblock_{str(m)}')
@@ -50,7 +50,7 @@ class Generator(nn.Module):
                 x = resblock_m(x)
 
         x += head
-        x = self.conv_block_after_resblock(x)
+        # x = self.conv_block_after_resblock(x)
         x = self.conv_block_2(x)
         out = self.conv_block_out(x)
 
