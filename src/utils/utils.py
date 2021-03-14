@@ -7,8 +7,8 @@ from numpy.core.numeric import Infinity
 
 def initialize_parameters_kaiming(m):
     if isinstance(m, nn.Conv2d):
-        nn.init.kaiming_normal_(m.weight.data, nonlinearity='relu')
-        nn.init.constant_(m.bias.data, 0)
+        nn.init.kaiming_normal_(m.weight, nonlinearity='relu')
+        nn.init.zeros_(m.bias)
 
 
 class NormalizeInverse(transforms.Normalize):
