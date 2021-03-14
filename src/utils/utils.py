@@ -1,7 +1,14 @@
 import torch
+import torch.nn as nn
 import os
 import torchvision.transforms as transforms
 from numpy.core.numeric import Infinity
+
+
+def initialize_parameters_kaiming(m):
+    if isinstance(m, nn.Conv2d):
+        nn.init.kaiming_normal_(m.weight.data, nonlinearity='relu')
+        nn.init.constant_(m.bias.data, 0)
 
 
 class NormalizeInverse(transforms.Normalize):

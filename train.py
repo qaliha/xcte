@@ -12,7 +12,7 @@ from tqdm import tqdm
 from loader_data import get_test_set, get_training_set
 from src.utils.metric import psnr, ssim
 from src.utils.tensor import save_img, save_img_version, tensor2img, dclamp
-from src.utils.utils import load_checkpoint, normalize, inverse_normalize
+from src.utils.utils import initialize_parameters_kaiming, load_checkpoint, normalize, inverse_normalize
 from src.scheduler import get_scheduler, update_learning_rate
 from src.model import Model
 from torch.utils.data import DataLoader
@@ -65,6 +65,8 @@ if __name__ == '__main__':
     print('===> Building models')
 
     model = Model(bit=opt.bit, opt=opt).to(device)
+
+    model.apply(initialize_parameters_kaiming)
 
     sample_image_dataset = training_data_loader.dataset
     n_samples = len(sample_image_dataset)
