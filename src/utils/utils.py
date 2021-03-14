@@ -1,5 +1,7 @@
+import math
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import os
 import torchvision.transforms as transforms
 from numpy.core.numeric import Infinity
@@ -93,3 +95,18 @@ def load_checkpoint(model, opt_e, opt_g, opt_d, sch_e, sch_g, ech_d, filename='n
         exit()
 
     return start_epoch, model, opt_e, opt_g, opt_d, sch_e, sch_g, ech_d, logs, max_ssim, max_ssim_epoch, bit_size
+
+
+def add_padding(tensor, p):
+    b, c, h, w = tensor.shape
+
+    if h % p == 0 and w % p == 0 and (h == w):
+        return tensor, h, w
+
+    mx = max((math.ceil(h / (p + 0.0)) * p), (math.ceil(w / (p + 0.0)) * p))
+
+    padding_h = max(0, mx - h)
+    padding_w = max(0, mx - w)
+
+    tensor = F.pad(tensor, [0, padding_w, 0, padding_h], 'reflect')
+    return tensor, h, w

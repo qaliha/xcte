@@ -1,5 +1,8 @@
 import argparse
 import os
+
+import torchvision
+from src.utils.utils import add_padding
 from src.utils.tensor import prepare_for_compression_from_normalized_input, save_img_version, tensor2img
 
 import torch
@@ -54,21 +57,36 @@ for image_name in image_filenames:
     input = transform(input)
     input = input.unsqueeze(0).to(device)
 
-    encoder_output = model.Encoder(input)
+    input_padded, h, w = add_padding(input, 128)
+
+    encoder_output = model.Encoder(input_padded)
 
     compressed_image = model.compress(encoder_output.detach())
 
     expanded_image = model.Generator(compressed_image)
 
+    expanded_image_dec = expanded_image[:, :, :h, :w]
+    compressed_image_dec = compressed_image[:, :, :h, :w]
+
     if not os.path.exists("checkpoints/{}/results".format(opt.checkpoint)):
         os.makedirs("checkpoints/{}/results".format(opt.checkpoint))
 
-    save_img_version(compressed_image.detach().squeeze(0).cpu(
+    image_cat = torchvision.utils.make_grid(
+        [
+            # input.detach().squeeze(0),
+            input_padded.detach().squeeze(0),
+            encoder_output.detach().squeeze(0),
+            compressed_image.detach().squeeze(0),
+            expanded_image.detach().squeeze(0)
+        ]
+    )
+
+    save_img_version(compressed_image_dec.detach().squeeze(0).cpu(
     ), "checkpoints/{}/results/{}_{}_compressed_{}".format(opt.checkpoint, opt.name, opt.e, image_name))
-    save_img_version(encoder_output.detach().squeeze(0).cpu(
-    ), "checkpoints/{}/results/{}_{}_encoder_{}".format(opt.checkpoint, opt.name, opt.e, image_name))
-    save_img_version(expanded_image.detach().squeeze(0).cpu(
+    save_img_version(expanded_image_dec.detach().squeeze(0).cpu(
     ), "checkpoints/{}/results/{}_{}_expanded_{}".format(opt.checkpoint, opt.name, opt.e, image_name))
+    save_img_version(image_cat.cpu(
+    ), "checkpoints/{}/results/{}_{}_cat_{}".format(opt.checkpoint, opt.name, opt.e, image_name))
 
     torch.save(
         model, "checkpoints/{}/model_{}_{}_expanded.pth".format(opt.checkpoint, opt.name, opt.e))
