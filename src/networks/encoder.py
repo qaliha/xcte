@@ -13,9 +13,10 @@ class FeatureExtractor(nn.Module):
 
         n_features = 64
 
-        self.conv_block_1 = ConvLayer(3, n_features, 3, 1, norm='none')
+        self.conv_block_1 = ConvLayer(
+            3, n_features, 3, 1, norm='none', activation='prelu')
         self.conv_block_2 = ConvLayer(
-            n_features, n_features, 3, 1, norm='none')
+            n_features, n_features, 3, 1, norm='none', activation='prelu')
         # Ok for now remove this and copy the reference networks
         # model += [ConvLayer(n_features, n_features, 3, 1, norm='skip')]
         self.conv_block_downsample = ConvLayer(
