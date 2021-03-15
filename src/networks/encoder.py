@@ -20,7 +20,10 @@ class FeatureExtractor(nn.Module):
         # Ok for now remove this and copy the reference networks
         # model += [ConvLayer(n_features, n_features, 3, 1, norm='skip')]
         self.conv_block_downsample = ConvLayer(
-            n_features, 12, 3, 2, norm='none', activation='none', padding='reflection', reflection_padding=(0, 1, 1, 0))
+            n_features, 12, 2, 2, norm='none', activation='none', padding='none')
+
+        # Is padding required here and using kernel 3? maybe not neccesarry because this network not as deep as generator and it's last layer
+        # Padding: padding='reflection', reflection_padding=(0, 1, 1, 0)
 
         self.shuffle = nn.PixelShuffle(2)
 

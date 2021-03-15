@@ -46,7 +46,7 @@ def tensor2img(tensor):
     tensor = tensor.detach().numpy()
     tensor = np.squeeze(tensor)
     tensor = np.moveaxis(tensor, 0, 2)
-    tensor = tensor * 255
+    tensor = (tensor * 255)  # + 0.5  # ? add 0.5 to rounding
     tensor = tensor.clip(0, 255).astype(np.uint8)
 
     img = Image.fromarray(tensor)
