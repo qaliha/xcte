@@ -33,23 +33,24 @@ def dclamp(input, min, max):
     return DifferentiableClamp.apply(input, min, max)
 
 
-def tensor2img(tensor):
+def tensor2imgtorch(tensor):
     ndarr = tensor.mul(255).add_(0.5).clamp_(0, 255).permute(
         1, 2, 0).to('cpu', torch.uint8).numpy()
 
     img = Image.fromarray(ndarr)
     return img
 
-# def tensor2img(tensor):
-#     tensor = tensor.cpu()
-#     tensor = tensor.detach().numpy()
-#     tensor = np.squeeze(tensor)
-#     tensor = np.moveaxis(tensor, 0, 2)
-#     tensor = tensor * 255
-#     tensor = tensor.clip(0, 255).astype(np.uint8)
 
-#     img = Image.fromarray(tensor)
-#     return img
+def tensor2img(tensor):
+    tensor = tensor.cpu()
+    tensor = tensor.detach().numpy()
+    tensor = np.squeeze(tensor)
+    tensor = np.moveaxis(tensor, 0, 2)
+    tensor = tensor * 255
+    tensor = tensor.clip(0, 255).astype(np.uint8)
+
+    img = Image.fromarray(tensor)
+    return img
 
 # Good for [0, 1] image range aka save compressed image
 
