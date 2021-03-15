@@ -52,6 +52,8 @@ def get_arguments():
                         help='standarize the input?')
     parser.add_argument('--optimized_encoder', action='store_true',
                         help='using new encoder logic?')
+    parser.add_argument('--optimizer_encoder_noises', action='store_true',
+                        help='using new noise encoder logic?')
 
     opt = parser.parse_args()
 
