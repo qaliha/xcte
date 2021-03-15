@@ -15,7 +15,7 @@ class Generator(nn.Module):
 
         self.unshuffle = PixelUnshuffle(2)
         # self.upsampling = nn.UpsamplingBilinear2d(scale_factor=2)
-        self.conv_init = ConvTransposeLayer(12, 12, 2, 2)
+        self.conv_init = ConvTransposeLayer(12, 12, 3, 2)
 
         # self.pre_normalization = nn.BatchNorm2d(12)
 
@@ -63,7 +63,7 @@ class ConvTransposeLayer(nn.Module):
         super(ConvTransposeLayer, self).__init__()
         # convolution
         self.conv_layer = nn.ConvTranspose2d(
-            in_ch, out_ch, kernel_size=kernel_size, stride=stride, **cnn_kwargs)
+            in_ch, out_ch, kernel_size=kernel_size, stride=stride, padding=1, output_padding=1, **cnn_kwargs)
 
     def forward(self, x):
         out = self.conv_layer(x)
