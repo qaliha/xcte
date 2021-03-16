@@ -49,44 +49,45 @@ model.Encoder.eval()
 model.Generator.eval()
 
 for image_name in image_filenames:
-    # get input image
-    input = load_img(image_dir + image_name, resize=False)
+    with torch.no_grad():
+        # get input image
+        input = load_img(image_dir + image_name, resize=False)
 
-    # transforms and other operation
-    input = transform(input)
-    input = input.unsqueeze(0).to(device)
+        # transforms and other operation
+        input = transform(input)
+        input = input.unsqueeze(0).to(device)
 
-    input_padded, h, w = add_padding(input, 128)
+        input_padded, h, w = add_padding(input, 128)
 
-    encoder_output = model.Encoder(input_padded)
+        encoder_output = model.Encoder(input_padded)
 
-    compressed_image = model.compress(encoder_output.detach())
+        compressed_image = model.compress(encoder_output.detach())
 
-    expanded_image = model.Generator(compressed_image)
+        expanded_image = model.Generator(compressed_image)
 
-    expanded_image_dec = expanded_image[:, :, :h, :w]
-    compressed_image_dec = compressed_image[:, :, :h, :w]
+        expanded_image_dec = expanded_image[:, :, :h, :w]
+        compressed_image_dec = compressed_image[:, :, :h, :w]
 
-    input_img = tensor2img(input)
-    expanded_img = tensor2img(expanded_image_dec)
-    compressed_img = tensor2img(compressed_image_dec)
+        input_img = tensor2img(input)
+        expanded_img = tensor2img(expanded_image_dec)
+        compressed_img = tensor2img(compressed_image_dec)
 
-    _tmp_psnr_compressed = psnr(input_img, compressed_img)
-    _tmp_ssim_compressed = ssim(compressed_img, input_img)
+        _tmp_psnr_compressed = psnr(input_img, compressed_img)
+        _tmp_ssim_compressed = ssim(compressed_img, input_img)
 
-    _tmp_psnr_expanded = psnr(input_img, expanded_img)
-    _tmp_ssim_expanded = ssim(expanded_img, input_img)
+        _tmp_psnr_expanded = psnr(input_img, expanded_img)
+        _tmp_ssim_expanded = ssim(expanded_img, input_img)
 
-    print(_tmp_psnr_compressed, _tmp_ssim_compressed,
-          _tmp_psnr_expanded, _tmp_ssim_expanded)
+        print(_tmp_psnr_compressed, _tmp_ssim_compressed,
+              _tmp_psnr_expanded, _tmp_ssim_expanded)
 
-    if not os.path.exists("results"):
-        os.makedirs("results")
+        if not os.path.exists("results"):
+            os.makedirs("results")
 
-    save_img_version(compressed_image_dec.detach().squeeze(0).cpu(
-    ), "results/{}_{}_compressed_{}".format(opt.name, opt.e, image_name))
-    save_img_version(expanded_image_dec.detach().squeeze(0).cpu(
-    ), "results/{}_{}_expanded_{}".format(opt.name, opt.e, image_name))
+        save_img_version(compressed_image_dec.detach().squeeze(0).cpu(
+        ), "results/{}_{}_compressed_{}".format(opt.name, opt.e, image_name))
+        save_img_version(expanded_image_dec.detach().squeeze(0).cpu(
+        ), "results/{}_{}_expanded_{}".format(opt.name, opt.e, image_name))
 
-    torch.save(
-        model, "model_{}_{}_expanded.pth".format(opt.name, opt.e))
+        torch.save(
+            model, "model_{}_{}_expanded.pth".format(opt.name, opt.e))
