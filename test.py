@@ -1,5 +1,6 @@
 import argparse
 import os
+from src.utils.metric import psnr, ssim
 
 import torchvision
 from src.utils.utils import add_padding
@@ -67,6 +68,19 @@ for image_name in image_filenames:
 
     expanded_image_dec = expanded_image[:, :, :h, :w]
     compressed_image_dec = compressed_image[:, :, :h, :w]
+
+    input_img = tensor2img(input)
+    expanded_img = tensor2img(expanded_image_dec)
+    compressed_img = tensor2img(compressed_image_dec)
+
+    _tmp_psnr_compressed = psnr(input_img, compressed_img)
+    _tmp_ssim_compressed = ssim(compressed_img, input_img)
+
+    _tmp_psnr_expanded = psnr(input_img, expanded_img)
+    _tmp_ssim_expanded = ssim(expanded_img, input_img)
+
+    print(_tmp_psnr_compressed, _tmp_ssim_compressed,
+          _tmp_psnr_expanded, _tmp_ssim_expanded)
 
     if not os.path.exists("checkpoints/{}/results".format(opt.checkpoint)):
         os.makedirs("checkpoints/{}/results".format(opt.checkpoint))
