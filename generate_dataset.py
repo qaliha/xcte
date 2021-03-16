@@ -4,6 +4,7 @@ import numpy as np
 
 from PIL import Image
 from tqdm import tqdm
+from sklearn.feature_extraction import image
 
 
 def mkdir(directory, mode=0o777):
@@ -55,12 +56,15 @@ def generate_patches(src_path, files, set_path, crop_size, img_format, max_patch
         img = np.copy(img)
         img_patches = np.expand_dims(img, 0)
     else:
-        rem_h = (h % crop_size[0])
-        rem_w = (w % crop_size[1])
-        img = img[:h-rem_h, :w-rem_w]
-        img_patches = crop(img, crop_size)
+        img_patches = image.extract_patches_2d(
+            img, (crop_size[0], crop_size[1]), max_patches=max_patches, random_state=0)
 
-    # print('Cropped')
+        # rem_h = (h % crop_size[0])
+        # rem_w = (w % crop_size[1])
+        # img = img[:h-rem_h, :w-rem_w]
+        # img_patches = crop(img, crop_size)
+
+        # print('Cropped')
 
     n = 0
 
