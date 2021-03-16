@@ -29,7 +29,7 @@ device = torch.device("cuda:0" if opt.cuda else "cpu")
 model_path = "net_{}_epoch_{}.pth".format(opt.name, opt.e)
 image_dir = "datasets_test/datasets/a/"
 
-model = Model(0.5, opt)
+model = Model(0.5, opt).to(device)
 
 checkpoint = torch.load(model_path, map_location=device)
 model.load_state_dict(checkpoint['model_dict'])
