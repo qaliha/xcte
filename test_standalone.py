@@ -26,9 +26,8 @@ print(opt)
 
 device = torch.device("cuda:0" if opt.cuda else "cpu")
 
-model_path = "net_{}_epoch_{}.pth".format(
-    opt.checkpoint, opt.name, opt.e)
-image_dir = "datasets_test/datasets/a/".format(opt.checkpoint)
+model_path = "net_{}_epoch_{}.pth".format(opt.name, opt.e)
+image_dir = "datasets_test/datasets/a/"
 
 model = Model(0.5, opt)
 
@@ -81,13 +80,13 @@ for image_name in image_filenames:
     print(_tmp_psnr_compressed, _tmp_ssim_compressed,
           _tmp_psnr_expanded, _tmp_ssim_expanded)
 
-    if not os.path.exists("results".format(opt.checkpoint)):
-        os.makedirs("results".format(opt.checkpoint))
+    if not os.path.exists("results"):
+        os.makedirs("results")
 
     save_img_version(compressed_image_dec.detach().squeeze(0).cpu(
-    ), "results/{}_{}_compressed_{}".format(opt.checkpoint, opt.name, opt.e, image_name))
+    ), "results/{}_{}_compressed_{}".format(opt.name, opt.e, image_name))
     save_img_version(expanded_image_dec.detach().squeeze(0).cpu(
-    ), "results/{}_{}_expanded_{}".format(opt.checkpoint, opt.name, opt.e, image_name))
+    ), "results/{}_{}_expanded_{}".format(opt.name, opt.e, image_name))
 
     torch.save(
-        model, "model_{}_{}_expanded.pth".format(opt.checkpoint, opt.name, opt.e))
+        model, "model_{}_{}_expanded.pth".format(opt.name, opt.e))
