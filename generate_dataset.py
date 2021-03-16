@@ -24,9 +24,21 @@ def crop(img_arr, block_size):
     return h_splited
 
 
-def generate_patches(src_path, files, set_path, crop_size, img_format, max_patches):
+def generate_patches(src_path, files, set_path, crop_size, img_format, max_patches, resize):
     img_path = os.path.join(src_path, files)
     img = Image.open(img_path).convert('RGB')
+
+    # jika resize factor, factor > 1 atau factor < -1
+    if resize > 1 or resize < -1:
+        wi, he = img.size
+        if resize > 1:
+            wi = wi * resize
+            he = he * resize
+        else:
+            wi = wi // abs(resize)
+            he = he // abs(resize)
+
+        img = img.resize((wi, he), resample=Image.BICUBIC)
 
     name, _ = files.split('.')
     filedir = os.path.join(set_path, 'a')
@@ -61,13 +73,14 @@ def generate_patches(src_path, files, set_path, crop_size, img_format, max_patch
     return n
 
 
-def main(target_dataset_folder, dataset_path, crop_size, img_format, max_patches, max_n):
+def main(target_dataset_folder, dataset_path, crop_size, img_format, max_patches, max_n, resize):
     print('[ Creating Dataset ]')
     print('Crop Size : {}'.format(crop_size))
     print('Target       : {}'.format(target_dataset_folder))
     print('Dataset       : {}'.format(dataset_path))
     print('Format    : {}'.format(img_format))
     print('Max N    : {}'.format(max_n))
+    print('Resize factor    : {}'.format(resize))
 
     src_path = dataset_path
     if not dir_exists(src_path):
@@ -85,7 +98,7 @@ def main(target_dataset_folder, dataset_path, crop_size, img_format, max_patches
     j = 0
     for files in bar:
         k = generate_patches(src_path, files, set_path,
-                             crop_size, img_format, max_patches)
+                             crop_size, img_format, max_patches, resize)
 
         bar.set_description(desc='itr: %d/%d' % (
             i, max
@@ -117,10 +130,12 @@ if __name__ == '__main__':
     parser.add_argument('--crop_size', type=int,
                         help='crop size, -1 to save whole images')
     parser.add_argument('--img_format', type=str, help='image format e.g. png')
+    parser.add_argument(
+        '--resize', type=int, default=0, help='resize image to that factor, positive (+) for upsample, (-) for downsample')
 
     args = parser.parse_args()
 
     crop_size = [args.crop_size,
                  args.crop_size] if args.crop_size > 0 else None
     main(args.target_dataset_folder, args.dataset_path,
-         crop_size, args.img_format, args.max_patches, args.max_n)
+         crop_size, args.img_format, args.max_patches, args.max_n, args.resize)
