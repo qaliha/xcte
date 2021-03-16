@@ -24,7 +24,10 @@ def crop(img_arr, block_size):
     return h_splited
 
 
-def generate_patches(src_path, files, set_path, crop_size, img_format, max_patches, resize):
+def generate_patches(src_path, files, set_path, crop_size, img_format, max_patches, resize, local_j=0, max_n=0):
+
+    local_local_j = local_j
+
     img_path = os.path.join(src_path, files)
     img = Image.open(img_path).convert('RGB')
 
@@ -69,6 +72,10 @@ def generate_patches(src_path, files, set_path, crop_size, img_format, max_patch
         )
 
         n += 1
+        local_local_j += 1
+
+        if local_local_j >= max_n:
+            break
 
     return n
 
@@ -98,7 +105,7 @@ def main(target_dataset_folder, dataset_path, crop_size, img_format, max_patches
     j = 0
     for files in bar:
         k = generate_patches(src_path, files, set_path,
-                             crop_size, img_format, max_patches, resize)
+                             crop_size, img_format, max_patches, resize, local_j=j, max_n=max_n)
 
         bar.set_description(desc='itr: %d/%d' % (
             i, max
