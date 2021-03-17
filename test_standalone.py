@@ -48,6 +48,9 @@ transform = transforms.Compose(transform_list)
 model.Encoder.eval()
 model.Generator.eval()
 
+psnr_sum = 0
+ssim_sum = 0
+
 for image_name in image_filenames:
     with torch.no_grad():
         # get input image
@@ -78,6 +81,9 @@ for image_name in image_filenames:
         _tmp_psnr_expanded = psnr(input_img, expanded_img)
         _tmp_ssim_expanded = ssim(expanded_img, input_img)
 
+        psnr_sum += _tmp_psnr_expanded
+        ssim_sum += _tmp_ssim_expanded
+
         print(_tmp_psnr_compressed, _tmp_ssim_compressed,
               _tmp_psnr_expanded, _tmp_ssim_expanded)
 
@@ -91,3 +97,6 @@ for image_name in image_filenames:
 
         torch.save(
             model, "model_{}_{}_expanded.pth".format(opt.name, opt.e))
+
+print(psnr_sum/max(1, len(image_filenames)))
+print(ssim_sum/max(1, len(image_filenames)))
