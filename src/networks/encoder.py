@@ -8,52 +8,33 @@ from src.networks.generator import ConvLayer
 
 
 class FeatureExtractor(nn.Module):
-    def __init__(self):
+    def __init__(self, n_features):
         super(FeatureExtractor, self).__init__()
 
-        n_features = 64
-
-        self.conv_block_1 = ConvLayer(
-            3, n_features, 3, 1, norm='none', activation='prelu')
-        self.conv_block_2 = ConvLayer(
-            n_features, n_features, 3, 1, norm='none', activation='prelu')
-        # Ok for now remove this and copy the reference networks
-        # model += [ConvLayer(n_features, n_features, 3, 1, norm='skip')]
-        self.conv_block_downsample = ConvLayer(
-            n_features, 12, 2, 2, norm='none', activation='none', padding='none')
-
-        # Is padding required here and using kernel 3? maybe not neccesarry because this network not as deep as generator and it's last layer
-        # Padding: padding='reflection', reflection_padding=(0, 1, 1, 0)
-
-        self.shuffle = nn.PixelShuffle(2)
+        self.conv_block_1 = ConvLayer(3, n_features, 5, 1)
+        self.conv_block_2 = ConvLayer(n_features, n_features, 3, 1)
+        self.conv_block_3 = ConvLayer(
+            n_features, 3, 3, 1, activation='skip', norm='skip')
 
     def forward(self, x):
         out = self.conv_block_1(x)
         out = self.conv_block_2(out)
+        out = self.conv_block_3(out)
 
-        downsampled = self.conv_block_downsample(out)
-        shuffled = self.shuffle(downsampled)
-
-        return shuffled
+        return out
 
 
 class Encoder(nn.Module):
-    def __init__(self, cuda=False, alpha=.8):
+    def __init__(self, cuda=False, alpha=.8, n_features=64):
         super(Encoder, self).__init__()
 
-        self.feature_net = FeatureExtractor()
+        self.feature_net = FeatureExtractor(n_features)
 
-        # self.connection_weights = nn.Parameter(torch.empty(3, 256, 256).uniform_(0, 1))
         self.connection_weights = nn.Parameter(torch.tensor(alpha))
-        # if cuda:
-        #     self.connection_weights = self.connection_weights.to(torch.device("cuda:0"))
-        # self.connection_weights.requires_grad_(True)
 
     def forward(self, x):
         inp = x
-        # Get or extract the feature
-        y = self.feature_net(x)
-        out = F.normalize(y, p=2, dim=1)
+        out = self.feature_net(x)
 
         connection_restricted = self.connection_weights.sigmoid()
 
