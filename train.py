@@ -431,7 +431,7 @@ if __name__ == '__main__':
 
             # new method
             if opt.optimized_encoder:
-                encoded = 0.5 * encoded + 0.5 * compressed_image
+                encoded = 0.8 * encoded + 0.2 * compressed_image
 
             if opt.optimizer_encoder_noises:
                 # possible image noise when compressing image
