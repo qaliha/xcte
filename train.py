@@ -430,13 +430,13 @@ if __name__ == '__main__':
             encoded = model.Encoder(image)
 
             # new method
-            # if opt.optimized_encoder:
-            #     encoded = 0.5 * encoded + 0.5 * compressed_image
-
             if opt.optimized_encoder:
-                # possible image noise when compressing image
-                noise = compressed_image - encoded.detach()
-                encoded += noise
+                encoded = 0.5 * encoded + 0.5 * compressed_image
+
+            # if opt.optimized_encoder:
+            #     # possible image noise when compressing image
+            #     noise = compressed_image - encoded.detach()
+            #     encoded += noise
 
             generated = model.Generator(encoded)
 
