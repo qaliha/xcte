@@ -36,10 +36,7 @@ class Encoder(nn.Module):
         inp = x
         out = self.feature_net(x)
 
-        connection_restricted = self.connection_weights.sigmoid()
-
-        out = connection_restricted * inp + \
-            (1 - connection_restricted) * out
+        out += inp
 
         return out
 
