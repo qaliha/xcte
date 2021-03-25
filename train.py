@@ -84,7 +84,7 @@ if __name__ == '__main__':
     opt_encoder = optim.Adam(model.Encoder.feature_net.parameters(), lr=opt.lr)
     # optimizer for connection weights, separated for different learning rate
     opt_connection = optim.Adam(
-        model.Encoder.parameters(recurse=False), lr=(opt.lr / 10))
+        model.Encoder.parameters(recurse=False), lr=(opt.lr / 2))
     opt_generator = optim.Adam(model.Generator.parameters(), lr=opt.lr)
     opt_discriminator = optim.Adam(model.Discriminator.parameters(), lr=opt.lr)
 
