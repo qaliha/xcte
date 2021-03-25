@@ -81,11 +81,15 @@ if __name__ == '__main__':
     summary(model.Encoder, single_example, opt.batch_size)
     summary(model.Generator, single_example, opt.batch_size)
 
-    opt_encoder = optim.Adam(model.Encoder.parameters(), lr=opt.lr)
+    opt_encoder = optim.Adam(model.Encoder.feature_net.parameters(), lr=opt.lr)
+    # optimizer for connection weights, separated for different learning rate
+    opt_connection = optim.Adam(
+        model.Encoder.parameters(recurse=False), lr=(opt.lr / 10))
     opt_generator = optim.Adam(model.Generator.parameters(), lr=opt.lr)
     opt_discriminator = optim.Adam(model.Discriminator.parameters(), lr=opt.lr)
 
     sch_encoder = get_scheduler(opt_encoder, opt, option='step')
+    sch_connection = get_scheduler(opt_connection, opt, option='step')
     sch_generator = get_scheduler(opt_generator, opt, option='step')
     sch_discriminator = get_scheduler(opt_discriminator, opt, option='step')
 
@@ -192,6 +196,7 @@ if __name__ == '__main__':
                         image, mean=training_mean, std=training_std)
 
                 opt_encoder.zero_grad()  # make gradient zero
+                opt_connection.zero_grad()  # make gradient zero
 
                 # calculate gradients
                 encoded = model.Encoder(image)
@@ -201,6 +206,7 @@ if __name__ == '__main__':
 
                 # update weights
                 opt_encoder.step()
+                opt_connection.step()
 
                 t_warm_losses += compression_losses.item()
 
@@ -425,18 +431,19 @@ if __name__ == '__main__':
             model.set_requires_grad(model.Generator, False)
 
             opt_encoder.zero_grad()  # set E's gradients to zero
+            opt_connection.zero_grad()
 
             # calculate gradient for E
             encoded = model.Encoder(image)
 
             # new method
             if opt.optimized_encoder:
-                encoded = 0.8 * encoded + 0.2 * compressed_image
+                encoded = 0.5 * encoded + 0.5 * compressed_image
 
-            if opt.optimizer_encoder_noises:
-                # possible image noise when compressing image
-                noise = compressed_image - encoded.detach()
-                encoded += noise
+            # if opt.optimizer_encoder_noises:
+            #     # possible image noise when compressing image
+            #     noise = compressed_image - encoded.detach()
+            #     encoded += noise
 
             generated = model.Generator(encoded)
 
@@ -445,6 +452,7 @@ if __name__ == '__main__':
 
             # update E's weights
             opt_encoder.step()
+            opt_connection.step()
 
             t_compression_losses += compression_losses.item()
 
@@ -494,6 +502,7 @@ if __name__ == '__main__':
         local_train_logs_holder.append(model.Encoder.connection_weights.item())
 
         update_learning_rate(sch_encoder, opt_encoder, show=True)
+        update_learning_rate(sch_connection, opt_connection, show=True)
         update_learning_rate(sch_generator, opt_generator)
         update_learning_rate(sch_discriminator, opt_discriminator)
 
