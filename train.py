@@ -195,8 +195,7 @@ if __name__ == '__main__':
 
                 # calculate gradients
                 encoded = model.Encoder(image)
-                compression_losses = model.compression_loss(
-                    encoded, image) * 0.5
+                compression_losses = model.compression_loss(encoded, image)
                 compression_losses.backward()
 
                 # update weights
@@ -347,7 +346,7 @@ if __name__ == '__main__':
                 D_real, D_gen, D_real_logits, D_gen_logits, 'generator_loss')
 
             decoder_losses = model.restruction_loss(expanded, image)
-            generator_losses = gan_losses * 0.00001 + decoder_losses * 0.5
+            generator_losses = gan_losses * 0.001 + decoder_losses
 
             generator_losses.backward()
 
@@ -356,7 +355,7 @@ if __name__ == '__main__':
 
             t_discriminator_loss += discriminator_loss.item()
             t_generator_losses += generator_losses.item()
-            t_dec_losses += decoder_losses.item() * 0.5
+            t_dec_losses += decoder_losses.item()
 
             if iteration == data_len:
                 local_train_logs_holder.append(
@@ -440,7 +439,7 @@ if __name__ == '__main__':
 
             generated = model.Generator(encoded)
 
-            compression_losses = model.compression_loss(generated, image) * 0.5
+            compression_losses = model.compression_loss(generated, image)
             compression_losses.backward()
 
             # update E's weights
