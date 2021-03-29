@@ -18,6 +18,17 @@ from src.losses.hf_losses import gan_loss
 # from loader import normalize
 
 
+class RMSELoss(torch.nn.Module):
+    def __init__(self, eps=1e-8):
+        super(RMSELoss, self).__init__()
+
+        self.mse = nn.MSELoss()
+        self.eps = eps
+
+    def forward(self, x, y):
+        return torch.sqrt(self.mse(x, y) + self.eps)
+
+
 class Model(nn.Module):
     def __init__(self, bit=3, opt=None):
         super(Model, self).__init__()
@@ -29,7 +40,8 @@ class Model(nn.Module):
 
         self.gan_loss = GANLoss(cuda=opt.cuda)
         self.gan_loss_hf = partial(gan_loss, 'non_saturating')
-        self.squared_difference = torch.nn.MSELoss(reduction='none')
+        # self.squared_difference = nn.MSELoss()
+        self.squared_difference = RMSELoss()
         # self.perceptual_loss = VGGLoss()
 
         # self.__initialize_weights(self.Encoder)
@@ -82,9 +94,9 @@ class Model(nn.Module):
         # loss in [0,255] space but normalized by 255 to not be too big
         # - Delegate scaling to weighting
         # sq_err = self.squared_difference(x_gen*255., x_real*255.)  # / 255.
-        sq_err = self.squared_difference(x_gen, x_real)  # / 255.
+        return self.squared_difference(x_gen, x_real)  # / 255.
 
-        return torch.mean(sq_err)
+        # return sq_err
 
     # def perceptual_loss(self, pred, target, normalize=True):
     #     # [0., 1.] -> [-1., 1.]
