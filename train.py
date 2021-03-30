@@ -186,11 +186,6 @@ if __name__ == '__main__':
                 # Train with random cropped image
                 image = batch[0+3].to(device)
 
-                # Normalize the input
-                if opt.std:
-                    image = normalize(
-                        image, mean=training_mean, std=training_std)
-
                 opt_encoder.zero_grad()  # make gradient zero
 
                 # calculate gradients
@@ -204,9 +199,6 @@ if __name__ == '__main__':
                 t_warm_losses += compression_losses.item()
 
                 if opt.debug:
-                    if opt.std:
-                        encoded = inverse_normalize(
-                            encoded, mean=training_mean, std=training_std)
                     save_img_version(encoded.detach().squeeze(
                         0).cpu(), 'interm/warm.png')
 
@@ -253,15 +245,8 @@ if __name__ == '__main__':
                 image = batch[0].to(device)
                 compressed_path = batch[2]
 
-                if opt.std:
-                    image = normalize(
-                        image, mean=training_mean, std=training_std)
-
                 encoder_output = model.Encoder(image)
 
-                if opt.std:
-                    encoder_output = inverse_normalize(
-                        encoder_output, mean=training_mean, std=training_std)
                 compressed_image = model.compress(encoder_output.detach())
 
                 for i in range(compressed_image.size(0)):
@@ -296,11 +281,6 @@ if __name__ == '__main__':
             # try to expanding the image
             image = batch[0+3].to(device)
             compressed_image = batch[1+3].to(device)
-
-            if opt.std:
-                image = normalize(image, mean=training_mean, std=training_std)
-                compressed_image = normalize(
-                    compressed_image, mean=training_mean, std=training_std)
 
             # because gradients for generator disabled when training Encoder
             # here we make generator can calculate gradients again!
@@ -374,14 +354,6 @@ if __name__ == '__main__':
                                   max(1, iteration), num)
 
             if opt.debug:
-                if opt.std:
-                    expanded = inverse_normalize(
-                        expanded, mean=training_mean, std=training_std)
-                    image = inverse_normalize(
-                        image, mean=training_mean, std=training_std)
-                    compressed_image = inverse_normalize(
-                        compressed_image, mean=training_mean, std=training_std)
-
                 save_img_version(expanded.detach().squeeze(
                     0).cpu(), 'interm/generated.png')
                 save_img_version(image.detach().squeeze(
@@ -415,11 +387,6 @@ if __name__ == '__main__':
             image = batch[0+3].to(device)
             compressed_image = batch[1+3].to(device)
 
-            if opt.std:
-                image = normalize(image, mean=training_mean, std=training_std)
-                compressed_image = normalize(
-                    compressed_image, mean=training_mean, std=training_std)
-
             # G requires no gradient when optimizing E
             model.set_requires_grad(model.Generator, False)
 
@@ -430,7 +397,7 @@ if __name__ == '__main__':
 
             # new method
             if opt.optimized_encoder:
-                encoded = 0.5 * encoded + 0.5 * compressed_image
+                encoded = 0.8 * encoded + 0.2 * compressed_image
 
             # if opt.optimizer_encoder_noises:
             #     # possible image noise when compressing image
@@ -464,14 +431,6 @@ if __name__ == '__main__':
                                   max(1, iteration), num)
 
             if opt.debug:
-                if opt.std:
-                    encoded = inverse_normalize(
-                        encoded, mean=training_mean, std=training_std)
-                    image = inverse_normalize(
-                        image, mean=training_mean, std=training_std)
-                    generated = inverse_normalize(
-                        generated, mean=training_mean, std=training_std)
-
                 save_img_version(encoded.detach().squeeze(
                     0).cpu(), 'interm/encoder.png')
                 save_img_version(image.detach().squeeze(
@@ -522,36 +481,15 @@ if __name__ == '__main__':
             with torch.no_grad():
                 input = batch[0+3].to(device)
 
-                if opt.std:
-                    input = normalize(
-                        input, mean=training_mean, std=training_std)
-
                 encoder_output = model.Encoder(input)
 
                 # compress the image from encoder
                 # compressed_image = model.compress(prepare_for_compression_from_normalized_input(
                 # encoder_output.detach().squeeze(0).cpu()))
 
-                if opt.std:
-                    encoder_output = inverse_normalize(
-                        encoder_output, mean=training_mean, std=training_std)
-
                 compressed_image = model.compress(encoder_output.detach())
 
-                if opt.std:
-                    compressed_image = normalize(
-                        compressed_image, mean=training_mean, std=training_std)
-
                 expanded_image = model.Generator(compressed_image)
-
-                if opt.std:
-                    # Unormalize all mage after this process
-                    input = inverse_normalize(
-                        input, mean=training_mean, std=training_std)
-                    compressed_image = inverse_normalize(
-                        compressed_image, mean=training_mean, std=training_std)
-                    expanded_image = inverse_normalize(
-                        expanded_image, mean=training_mean, std=training_std)
 
                 if r_intermedient == (iteration-1):
                     if not os.path.exists("interm"):
@@ -659,13 +597,21 @@ if __name__ == '__main__':
                 # Model
                 'model_dict': model.state_dict(),
                 # Optimizer
-                'optimizer_e': opt_encoder.state_dict() if opt.commit else None,
-                'optimizer_g': opt_generator.state_dict() if opt.commit else None,
-                'optimizer_d': opt_discriminator.state_dict() if opt.commit else None,
+                # 'optimizer_e': opt_encoder.state_dict() if opt.commit else None,
+                # 'optimizer_g': opt_generator.state_dict() if opt.commit else None,
+                # 'optimizer_d': opt_discriminator.state_dict() if opt.commit else None,
                 # Scheduler
-                'scheduler_e': sch_encoder.state_dict() if opt.commit else None,
-                'scheduler_g': sch_generator.state_dict() if opt.commit else None,
-                'scheduler_d': sch_discriminator.state_dict() if opt.commit else None,
+                # 'scheduler_e': sch_encoder.state_dict() if opt.commit else None,
+                # 'scheduler_g': sch_generator.state_dict() if opt.commit else None,
+                # 'scheduler_d': sch_discriminator.state_dict() if opt.commit else None,
+                # Optimizer
+                'optimizer_e': None,
+                'optimizer_g': None,
+                'optimizer_d': None,
+                # Scheduler
+                'scheduler_e': None,
+                'scheduler_g': None,
+                'scheduler_d': None,
                 'logs': train_logs_holder,
                 'max_ssim': max_ssim,
                 'max_ssim_epoch': max_ssim_epoch,
@@ -694,3 +640,5 @@ if __name__ == '__main__':
             torch.save(state, model_out_path)
             print("Checkpoint saved to {} as {}".format(
                 "checkpoint" + opt.dataset, model_out_path))
+
+    # calculate the results
