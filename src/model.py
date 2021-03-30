@@ -40,8 +40,8 @@ class Model(nn.Module):
 
         self.gan_loss = GANLoss(cuda=opt.cuda)
         self.gan_loss_hf = partial(gan_loss, 'non_saturating')
-        # self.squared_difference = nn.MSELoss()
-        self.squared_difference = RMSELoss()
+        self.squared_difference = nn.MSELoss()
+        # self.squared_difference = RMSELoss()
         # self.perceptual_loss = VGGLoss()
 
         # self.__initialize_weights(self.Encoder)
