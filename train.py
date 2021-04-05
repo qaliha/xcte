@@ -93,13 +93,13 @@ if __name__ == '__main__':
 
     start_epoch = opt.epoch_count
 
-    max_ssim = -Infinity
-    max_ssim_epoch = 0
+    max_psnr = -Infinity
+    max_psnr_epoch = 0
 
     tmp_bit_size = opt.bit
 
     if start_epoch > 1:
-        start_epoch, model, opt_encoder, opt_generator, opt_discriminator, sch_encoder, sch_generator, sch_discriminator, train_logs_holder, max_ssim, max_ssim_epoch, tmp_bit_size = load_checkpoint(
+        start_epoch, model, opt_encoder, opt_generator, opt_discriminator, sch_encoder, sch_generator, sch_discriminator, train_logs_holder, max_psnr, max_psnr_epoch, tmp_bit_size = load_checkpoint(
             model, opt_encoder, opt_generator, opt_discriminator, sch_encoder, sch_generator, sch_discriminator, "checkpoint/{}/net_{}_epoch_{}.pth".format(opt.dataset, opt.name, start_epoch-1))
 
         print('Previous learning rate = {}'.format(
@@ -614,21 +614,21 @@ if __name__ == '__main__':
                 'scheduler_g': None,
                 'scheduler_d': None,
                 'logs': train_logs_holder,
-                'max_ssim': max_ssim,
-                'max_ssim_epoch': max_ssim_epoch,
+                'max_psnr': max_psnr,
+                'max_psnr_epoch': max_psnr_epoch,
                 'bit': model.bit_size
             }
 
-            if mean_expanding_ssim >= max_ssim:
-                notice = f"Found new max SSIM on epoch {epoch}. {max_ssim} -> {mean_expanding_ssim}"
+            if mean_expanding_psnr >= max_psnr:
+                notice = f"Found new max PSNR on epoch {epoch}. {max_psnr} -> {mean_expanding_psnr}"
                 writer.add_text('logs', notice, epoch)
                 print(notice)
 
-                max_ssim = mean_expanding_ssim
-                max_ssim_epoch = epoch
+                max_psnr = mean_expanding_psnr
+                max_psnr_epoch = epoch
 
-                state['max_ssim'] = max_ssim
-                state['max_ssim_epoch'] = max_ssim_epoch
+                state['max_psnr'] = max_psnr
+                state['max_psnr_epoch'] = max_psnr_epoch
 
                 # are old file exist
                 modelmax_old_path = "checkpoint/{}/net_max.pth".format(
