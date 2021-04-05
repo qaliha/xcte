@@ -31,9 +31,9 @@ class Generator(nn.Module):
         #     n_feature, n_feature, 3, 1, activation='leaky')
 
         self.conv_block_2 = ConvLayer(n_feature, n_feature, 3, 1)
-        self.conv_block_3 = ConvLayer(n_feature, 12, 3, 1)
+        # self.conv_block_3 = ConvLayer(n_feature, 12, 3, 1)
         self.conv_block_out = ConvLayer(
-            12, 3, 3, 1, norm='none', activation='none')
+            n_feature, 3, 3, 1, norm='none', activation='none')
 
     def forward(self, x):
         head = self.unshuffle(x)
@@ -52,7 +52,7 @@ class Generator(nn.Module):
         x += head
         # x = self.conv_block_after_resblock(x)
         x = self.conv_block_2(x)
-        x = self.conv_block_3(x)
+        # x = self.conv_block_3(x)
         out = self.conv_block_out(x)
 
         return out
