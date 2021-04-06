@@ -14,33 +14,23 @@ class Generator(nn.Module):
         self.n_blocks = n_blocks
 
         self.unshuffle = PixelUnshuffle(2)
-        # self.upsampling = nn.UpsamplingBilinear2d(scale_factor=2)
         self.conv_init = ConvTransposeLayer(12, 12, 2, 2)
 
-        # self.pre_normalization = nn.BatchNorm2d(12)
-
         self.conv_block_1 = ConvLayer(12, n_feature, 3, 1)
-        # self.conv_block_before_resblock = ConvLayer(
-        #     n_feature, n_feature, 3, 1, activation='leaky')
 
         for m in range(self.n_blocks):
             resblock_m = ResidualLayer(n_feature, n_feature, 3, 1)
             self.add_module(f'resblock_{str(m)}', resblock_m)
 
-        # self.conv_block_after_resblock = ConvLayer(
-        #     n_feature, n_feature, 3, 1, activation='leaky')
-
         self.conv_block_2 = ConvLayer(n_feature, n_feature, 3, 1)
-        # self.conv_block_3 = ConvLayer(n_feature, 12, 3, 1)
+        self.conv_block_3 = ConvLayer(n_feature, n_feature, 3, 1)
         self.conv_block_out = ConvLayer(
-            n_feature, 3, 3, 1, norm='none', activation='none')
+            n_feature, 3, 5, 1, norm='none', activation='none')
 
     def forward(self, x):
         head = self.unshuffle(x)
         head = self.conv_init(head)
-        # head = self.pre_normalization(head)
         head = self.conv_block_1(head)
-        # head = self.conv_block_before_resblock(head)
 
         for m in range(self.n_blocks):
             resblock_m = getattr(self, f'resblock_{str(m)}')
@@ -50,9 +40,8 @@ class Generator(nn.Module):
                 x = resblock_m(x)
 
         x += head
-        # x = self.conv_block_after_resblock(x)
         x = self.conv_block_2(x)
-        # x = self.conv_block_3(x)
+        x = self.conv_block_3(x)
         out = self.conv_block_out(x)
 
         return out
