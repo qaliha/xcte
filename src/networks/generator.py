@@ -8,7 +8,7 @@ from src.utils.pixelunshuffle import PixelUnshuffle
 
 
 class Generator(nn.Module):
-    def __init__(self, n_blocks=8, n_feature=64):
+    def __init__(self, n_blocks=6, n_feature=64):
         super(Generator, self).__init__()
 
         self.n_blocks = n_blocks
