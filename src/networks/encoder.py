@@ -43,7 +43,13 @@ class Encoder(nn.Module):
 
         self.feature_net = FeatureExtractor()
 
-        self.connection_weights = nn.Parameter(torch.tensor(alpha))
+        initialized_tensor = torch.tensor(
+            data=[alpha, alpha, alpha], dtype=torch.float32)
+        initialized_tensor = initialized_tensor.unsqueeze(dim=0)
+        initialized_tensor = initialized_tensor.unsqueeze(dim=2)
+        initialized_tensor = initialized_tensor.unsqueeze(dim=3)
+
+        self.connection_weights = nn.Parameter(initialized_tensor)
 
     def forward(self, x):
         inp = x
@@ -51,10 +57,8 @@ class Encoder(nn.Module):
         y = self.feature_net(x)
         out = F.normalize(y, p=2, dim=1)
 
-        connection_restricted = self.connection_weights.sigmoid()
-
-        out = connection_restricted * inp + \
-            (1 - connection_restricted) * out
+        out = self.connection_weights * inp + \
+            (1 - self.connection_weights) * out
 
         return out
 

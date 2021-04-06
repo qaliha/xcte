@@ -215,13 +215,13 @@ if __name__ == '__main__':
                 writer.add_text(
                     'logs', f'Warming loss: {t_warm_losses/max(1, data_len)}')
                 writer.add_text(
-                    'logs', f'Connection weights after training: {model.Encoder.connection_weights.item()}')
+                    'logs', f'Connection weights after training: {model.Encoder.connection_weights.detach()}')
 
             # Re enable after the warming
             model.Encoder.connection_weights.requires_grad = True
             # if opt.debug:
             print(
-                f'Connection weights after training: {model.Encoder.connection_weights.item()}')
+                f'Connection weights after training: {model.Encoder.connection_weights.detach()}')
 
         if opt.debug:
             print(model.Encoder.connection_weights)
@@ -445,12 +445,12 @@ if __name__ == '__main__':
 
         if opt.tensorboard:
             writer.add_text(
-                'logs', f'Connection weights after training: {model.Encoder.connection_weights.item()}', epoch)
+                'logs', f'Connection weights after training: {model.Encoder.connection_weights.detach()}', epoch)
 
         print(
-            f'Connection weights after training: {model.Encoder.connection_weights.item()}')
+            f'Connection weights after training: {model.Encoder.connection_weights.detach()}')
 
-        local_train_logs_holder.append(model.Encoder.connection_weights.item())
+        # local_train_logs_holder.append(model.Encoder.connection_weights.detach())
 
         update_learning_rate(sch_encoder, opt_encoder, show=True)
         update_learning_rate(sch_generator, opt_generator)
@@ -549,8 +549,8 @@ if __name__ == '__main__':
                               local_train_logs_holder[1], epoch)
             writer.add_scalar(
                 'Loss/Encoder', local_train_logs_holder[2], epoch)
-            writer.add_scalar('Parameters/Gate',
-                              local_train_logs_holder[3], epoch)
+            # writer.add_scalar('Parameters/Gate',
+            #                   local_train_logs_holder[3], epoch)
 
             writer.add_scalar('Metrics/Compression/PSNR',
                               mean_compressiong_psnr, epoch)
