@@ -23,9 +23,9 @@ class Generator(nn.Module):
             self.add_module(f'resblock_{str(m)}', resblock_m)
 
         self.conv_block_2 = ConvLayer(n_feature, n_feature, 3, 1)
-        self.conv_block_3 = ConvLayer(n_feature, n_feature, 3, 1)
+        self.conv_block_3 = ConvLayer(n_feature, 12, 3, 1)
         self.conv_block_out = ConvLayer(
-            n_feature, 3, 3, 1, norm='none', activation='none')
+            12, 3, 3, 1, norm='none', activation='none')
 
     def forward(self, x):
         head = self.unshuffle(x)
