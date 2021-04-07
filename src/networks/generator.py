@@ -16,16 +16,15 @@ class Generator(nn.Module):
         self.unshuffle = PixelUnshuffle(2)
         self.conv_init = ConvTransposeLayer(12, 12, 2, 2)
 
-        self.conv_block_1 = ConvLayer(12, n_feature, 3, 1)
+        self.conv_block_1 = ConvLayer(12, n_feature, 3, 1, norm='none')
 
         for m in range(self.n_blocks):
             resblock_m = ResidualLayer(n_feature, n_feature, 3, 1)
             self.add_module(f'resblock_{str(m)}', resblock_m)
 
-        self.conv_block_2 = ConvLayer(n_feature, n_feature, 3, 1)
-        self.conv_block_3 = ConvLayer(n_feature, 12, 3, 1)
+        self.conv_block_2 = ConvLayer(n_feature, n_feature, 3, 1, norm='none')
         self.conv_block_out = ConvLayer(
-            12, 3, 3, 1, norm='none', activation='none')
+            n_feature, 3, 5, 1, norm='none', activation='none')
 
     def forward(self, x):
         head = self.unshuffle(x)
@@ -41,7 +40,6 @@ class Generator(nn.Module):
 
         x += head
         x = self.conv_block_2(x)
-        x = self.conv_block_3(x)
         out = self.conv_block_out(x)
 
         return out
@@ -121,17 +119,20 @@ class ResidualLayer(nn.Module):
         super(ResidualLayer, self).__init__()
 
         self.conv1 = ConvLayer(in_ch, out_ch, kernel_size,
-                               stride)
+                               stride, activation='none', norm='batch')
 
         self.conv2 = ConvLayer(out_ch, out_ch, kernel_size,
-                               stride, activation='none')
+                               stride, activation='none', norm='none')
+
+        self.activation = nn.ReLU()
 
     def forward(self, x):
         identity_map = x
         res = self.conv1(x)
         res = self.conv2(res)
 
-        return torch.add(res, identity_map)
+        res = torch.add(res, identity_map)
+        return self.activation(res)
 
 
 def trial():
