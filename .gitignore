@@ -97,6 +97,8 @@ interm/*
 checkpoints/*
 checkpoint/*
 
+dataset_test/*
+
 show.py
 test.bat
 matlab/*
