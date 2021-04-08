@@ -60,16 +60,18 @@ for image_name in image_filenames:
         input = transform(input)
         input = input.unsqueeze(0).to(device)
 
-        input_padded, h, w = add_padding(input, 128)
+        # input_padded, h, w = add_padding(input, 128)
 
-        encoder_output = model.Encoder(input_padded)
+        encoder_output = model.Encoder(input)
 
         compressed_image = model.compress(encoder_output.detach())
 
         expanded_image = model.Generator(compressed_image)
 
-        expanded_image_dec = expanded_image[:, :, :h, :w]
-        compressed_image_dec = compressed_image[:, :, :h, :w]
+        # expanded_image_dec = expanded_image[:, :, :h, :w]
+        # compressed_image_dec = compressed_image[:, :, :h, :w]
+        expanded_image_dec = expanded_image
+        compressed_image_dec = compressed_image
 
         input_img = tensor2img(input)
         expanded_img = tensor2img(expanded_image_dec)
