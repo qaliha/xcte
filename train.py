@@ -30,10 +30,10 @@ warnings.filterwarnings("ignore")
 
 if __name__ == '__main__':
 
-    writer = SummaryWriter()
-
     # Training settings
     opt = get_arguments()
+
+    writer = SummaryWriter(log_dir='runs/'+opt.name)
 
     if opt.cuda and not torch.cuda.is_available():
         raise Exception("No GPU found, please run without --cuda")
