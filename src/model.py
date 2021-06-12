@@ -34,7 +34,13 @@ class Model(nn.Module):
         super(Model, self).__init__()
 
         self.Encoder = Encoder(cuda=opt.cuda, alpha=opt.a)
-        self.Generator = Generator()
+        self.Generator = Generator(
+            n_blocks=opt.n_blocks,
+            n_feature=opt.n_feature,
+            padding=opt.padding,
+            norm=opt.normalization,
+            activation=opt.activation
+        )
         self.Discriminator = DiscriminatorHF()
 
         self.gan_loss = GANLoss(cuda=opt.cuda)
