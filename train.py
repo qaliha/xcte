@@ -133,11 +133,13 @@ if __name__ == '__main__':
     training_data_loader.dataset.set_load_compressed(False)  # for speedup
 
     num_epoch = opt.nepoch + 1
+    tmp_epoch = 0
     for epoch in range(start_epoch, num_epoch):
         if opt.epoch_limit > 0 and epoch > opt.epoch_limit:
             print('Process stopped because has react limit')
             break
 
+        tmp_epoch = epoch
         # warming the parameters of encoder if --warm is provided
         if opt.warm and epoch == 1:
             t_warm_losses = 0
@@ -656,9 +658,9 @@ if __name__ == '__main__':
                 os.makedirs("results")
 
             save_img_version(compressed_image_dec.detach().squeeze(0).cpu(
-            ), "results/{}_{}_compressed_{}".format(opt.name, opt.e, image_name))
+            ), "results/{}_{}_compressed_{}".format(opt.name, tmp_epoch, image_name))
             save_img_version(expanded_image_dec.detach().squeeze(0).cpu(
-            ), "results/{}_{}_expanded_{}".format(opt.name, opt.e, image_name))
+            ), "results/{}_{}_expanded_{}".format(opt.name, tmp_epoch, image_name))
 
     validation_psnr_accuracy = psnr_sum/max(1, len(image_filenames))
     validation_ssim_accuracy = ssim_sum/max(1, len(image_filenames))
