@@ -15,8 +15,7 @@ def get_arguments():
     parser.add_argument('--nepoch', type=int, default=50, help='# of epoch')
 
     # Training
-    parser.add_argument('--commit', action='store_true',
-                        help='commit mode? checkpoint will replace and save all models configuration for retraining')
+
     parser.add_argument('--warm', action='store_true',
                         help='warming up the training by first train encoder to atleast generate "similiar" image to input')
     parser.add_argument('--cuda', action='store_true', help='use cuda?')
@@ -39,21 +38,26 @@ def get_arguments():
     parser.add_argument('--seed', type=int, default=123,
                         help='random seed to use')
 
+    parser.add_argument('--n_blocks', type=int, help='')
+    parser.add_argument('--n_feature', type=int, help='')
+    parser.add_argument('--padding', type=str, help='')
+    parser.add_argument('--normalization', type=str, help='')
+    parser.add_argument('--activation', type=str, help='')
+
     # Tensorboard parameters
-    parser.add_argument('--tensorboard', action='store_true',
+    parser.add_argument('--commit', action='store_true',
+                        default=False, help='commit mode? checkpoint will replace and save all models configuration for retraining')
+    parser.add_argument('--tensorboard', default=True, action='store_true',
                         help='use tensorboard?')
     parser.add_argument(
         '--hookbin', help='hookbin url for capturing tensorboard url')
     parser.add_argument(
         '--auth_token', help='auth token for ngrok for limits')
+
     parser.add_argument('--silent', action='store_true',
                         help='silent the tqdm output')
-    parser.add_argument('--std', action='store_true',
-                        help='standarize the input?')
     parser.add_argument('--optimized_encoder', action='store_true',
                         help='using new encoder logic?')
-    parser.add_argument('--optimizer_encoder_noises', action='store_true',
-                        help='using new noise encoder logic?')
 
     opt = parser.parse_args()
 

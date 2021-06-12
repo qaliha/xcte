@@ -8,7 +8,7 @@ from src.utils.pixelunshuffle import PixelUnshuffle
 
 
 class Generator(nn.Module):
-    def __init__(self, n_blocks=6, n_feature=64):
+    def __init__(self, n_blocks=6, n_feature=64, padding='default', activation='relu', norm='channel'):
         super(Generator, self).__init__()
 
         self.n_blocks = n_blocks
@@ -16,16 +16,20 @@ class Generator(nn.Module):
         self.unshuffle = PixelUnshuffle(2)
         self.conv_init = ConvTransposeLayer(12, 12, 2, 2)
 
-        self.conv_block_1 = ConvLayer(12, n_feature, 3, 1)
+        self.conv_block_1 = ConvLayer(
+            12, n_feature, 3, 1, padding=padding, activation=activation, norm=norm)
 
         for m in range(self.n_blocks):
-            resblock_m = ResidualLayer(n_feature, n_feature, 3, 1)
+            resblock_m = ResidualLayer(
+                n_feature, n_feature, 3, 1, padding=padding, activation=activation, norm=norm)
             self.add_module(f'resblock_{str(m)}', resblock_m)
 
-        self.conv_block_2 = ConvLayer(n_feature, n_feature, 3, 1)
-        self.conv_block_3 = ConvLayer(n_feature, 12, 3, 1)
+        self.conv_block_2 = ConvLayer(
+            n_feature, n_feature, 3, 1, padding=padding, activation=activation, norm=norm)
+        self.conv_block_3 = ConvLayer(
+            n_feature, 12, 3, 1, padding=padding, activation=activation, norm=norm)
         self.conv_block_out = ConvLayer(
-            12, 3, 3, 1, norm='none', activation='none')
+            12, 3, 3, 1, padding=padding, norm='none', activation='none')
 
     def forward(self, x):
         head = self.unshuffle(x)
@@ -117,14 +121,14 @@ class ConvLayer(nn.Module):
 
 
 class ResidualLayer(nn.Module):
-    def __init__(self, in_ch, out_ch, kernel_size, stride):
+    def __init__(self, in_ch, out_ch, kernel_size, stride, padding, activation, norm):
         super(ResidualLayer, self).__init__()
 
         self.conv1 = ConvLayer(in_ch, out_ch, kernel_size,
-                               stride)
+                               stride, padding=padding, activation=activation, norm=norm)
 
         self.conv2 = ConvLayer(out_ch, out_ch, kernel_size,
-                               stride, activation='none')
+                               stride, padding=padding, norm=norm, activation='none')
 
     def forward(self, x):
         identity_map = x

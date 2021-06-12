@@ -1,3 +1,6 @@
+from src.utils.image import load_img
+from torchvision import transforms
+from loader import is_image_file
 import os
 import shutil
 import random
@@ -12,14 +15,14 @@ from tqdm import tqdm
 from loader_data import get_test_set, get_training_set
 from src.utils.metric import psnr, ssim
 from src.utils.tensor import save_img, save_img_version, tensor2img
-from src.utils.utils import initialize_parameters, load_checkpoint, normalize, inverse_normalize, initialize_parameters_kaiming
+from src.utils.utils import add_padding, load_checkpoint, initialize_parameters_kaiming
 from src.scheduler import get_scheduler, update_learning_rate
 from src.model import Model
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from generate_dataset import dir_exists, mkdir
 from numpy.core.numeric import Infinity
-from torchsummary import summary
+from torchinfo import summary
 
 from arguments import get_arguments
 
@@ -78,8 +81,8 @@ if __name__ == '__main__':
     single_example = (
         single_example_size[0], single_example_size[1], single_example_size[2])
 
-    summary(model.Encoder, single_example, opt.batch_size)
-    summary(model.Generator, single_example, opt.batch_size)
+    summaryEncoder = summary(model.Encoder, single_example, opt.batch_size)
+    summaryGenerator = summary(model.Generator, single_example, opt.batch_size)
 
     opt_encoder = optim.Adam(model.Encoder.parameters(), lr=opt.lr)
     opt_generator = optim.Adam(model.Generator.parameters(), lr=opt.lr)
@@ -131,33 +134,6 @@ if __name__ == '__main__':
             mkdir(train_dir_copy)
 
     training_data_loader.dataset.set_load_compressed(False)  # for speedup
-
-    # Calculating mean and standard deviation for dataset
-
-    nimages = 0
-    mean = 0.0
-    var = 0.0
-    for iteration, data in enumerate(training_data_loader, 1):
-        batch = data[0]
-        # Rearrange batch to be the shape of [B, C, W * H]
-        batch = batch.view(batch.size(0), batch.size(1), -1)
-        # Update total number of images
-        nimages += batch.size(0)
-        # Compute mean and std here
-        mean += batch.mean(2).sum(0)
-        var += batch.var(2).sum(0)
-
-    mean /= nimages
-    var /= nimages
-    std = torch.sqrt(var)
-
-    if opt.tensorboard:
-        writer.add_text('logs', f"Found mean: {mean}, std: {std}", 0)
-    else:
-        print(f"Found mean: {mean}, std: {std}")
-
-    training_mean = (*mean,)
-    training_std = (*std,)
 
     num_epoch = opt.nepoch + 1
     for epoch in range(start_epoch, num_epoch):
@@ -400,11 +376,6 @@ if __name__ == '__main__':
             if opt.optimized_encoder:
                 encoded = 0.5 * encoded + 0.5 * compressed_image
 
-            # if opt.optimizer_encoder_noises:
-            #     # possible image noise when compressing image
-            #     noise = compressed_image - encoded.detach()
-            #     encoded += noise
-
             generated = model.Generator(encoded)
 
             compression_losses = model.compression_loss(generated, image) * 0.5
@@ -598,14 +569,6 @@ if __name__ == '__main__':
                 # Model
                 'model_dict': model.state_dict(),
                 # Optimizer
-                # 'optimizer_e': opt_encoder.state_dict() if opt.commit else None,
-                # 'optimizer_g': opt_generator.state_dict() if opt.commit else None,
-                # 'optimizer_d': opt_discriminator.state_dict() if opt.commit else None,
-                # Scheduler
-                # 'scheduler_e': sch_encoder.state_dict() if opt.commit else None,
-                # 'scheduler_g': sch_generator.state_dict() if opt.commit else None,
-                # 'scheduler_d': sch_discriminator.state_dict() if opt.commit else None,
-                # Optimizer
                 'optimizer_e': None,
                 'optimizer_g': None,
                 'optimizer_d': None,
@@ -643,3 +606,85 @@ if __name__ == '__main__':
                 "checkpoint" + opt.dataset, model_out_path))
 
     # calculate the results
+    image_dir = "datasets_test/datasets/a/"
+    image_filenames = [x for x in os.listdir(image_dir) if is_image_file(x)]
+
+    transform_list = [transforms.ToTensor()]
+
+    transform = transforms.Compose(transform_list)
+
+    model.Encoder.eval()
+    model.Generator.eval()
+
+    psnr_sum = 0
+    ssim_sum = 0
+
+    for image_name in image_filenames:
+        with torch.no_grad():
+            # get input image
+            input = load_img(image_dir + image_name, resize=False)
+
+            # transforms and other operation
+            input = transform(input)
+            input = input.unsqueeze(0).to(device)
+
+            input_padded, h, w = add_padding(input, 128)
+
+            encoder_output = model.Encoder(input_padded)
+
+            compressed_image = model.compress(encoder_output.detach())
+
+            expanded_image = model.Generator(compressed_image)
+
+            expanded_image_dec = expanded_image[:, :, :h, :w]
+            compressed_image_dec = compressed_image[:, :, :h, :w]
+
+            input_img = tensor2img(input)
+            expanded_img = tensor2img(expanded_image_dec)
+            compressed_img = tensor2img(compressed_image_dec)
+
+            _tmp_psnr_compressed = psnr(input_img, compressed_img)
+            _tmp_ssim_compressed = ssim(compressed_img, input_img)
+
+            _tmp_psnr_expanded = psnr(input_img, expanded_img)
+            _tmp_ssim_expanded = ssim(expanded_img, input_img)
+
+            psnr_sum += _tmp_psnr_expanded
+            ssim_sum += _tmp_ssim_expanded
+
+            print(_tmp_psnr_compressed, _tmp_ssim_compressed,
+                  _tmp_psnr_expanded, _tmp_ssim_expanded)
+
+            if not os.path.exists("results"):
+                os.makedirs("results")
+
+            save_img_version(compressed_image_dec.detach().squeeze(0).cpu(
+            ), "results/{}_{}_compressed_{}".format(opt.name, opt.e, image_name))
+            save_img_version(expanded_image_dec.detach().squeeze(0).cpu(
+            ), "results/{}_{}_expanded_{}".format(opt.name, opt.e, image_name))
+
+    validation_psnr_accuracy = psnr_sum/max(1, len(image_filenames))
+    validation_ssim_accuracy = ssim_sum/max(1, len(image_filenames))
+
+    # logged hyperparameters
+    # learning rate
+    # bit size
+    writer.add_hparams({
+        'seed': opt.seed,
+        'lr': opt.lr,
+        'bits': opt.bit,
+        # todo
+        'n_blocks': opt.n_blocks,
+        'n_feature': opt.n_feature,
+        'padding': opt.padding,
+        'normalization': opt.normalization,
+        'activation': opt.activation,
+        # end todo
+        'batch_size': opt.batch_size,
+        'initial_gate_w': opt.a,
+        't_params_enc': summaryEncoder.total_params,
+        't_params_dec': summaryGenerator.total_params
+    }, {
+        'hparam/p_accuracy': validation_psnr_accuracy,
+        'hparam/s_accuracy': validation_ssim_accuracy,
+    })
