@@ -75,14 +75,11 @@ if __name__ == '__main__':
     n_samples = len(sample_image_dataset)
 
     # to get a random sample
-    random_index = int(np.random.random()*n_samples)
-    single_example = sample_image_dataset[random_index]
-    single_example_size = list(single_example[0].size())
-    single_example = (
-        single_example_size[0], single_example_size[1], single_example_size[2])
 
-    summaryEncoder = summary(model.Encoder, single_example, opt.batch_size)
-    summaryGenerator = summary(model.Generator, single_example, opt.batch_size)
+    summaryEncoder = summary(
+        model.Encoder, input_size=(opt.batch_size, 3, 128, 128))
+    summaryGenerator = summary(
+        model.Generator, input_size=(opt.batch_size, 3, 128, 128))
 
     opt_encoder = optim.Adam(model.Encoder.parameters(), lr=opt.lr)
     opt_generator = optim.Adam(model.Generator.parameters(), lr=opt.lr)
