@@ -686,4 +686,14 @@ if __name__ == '__main__':
     }, {
         'hparam/p_accuracy': validation_psnr_accuracy,
         'hparam/s_accuracy': validation_ssim_accuracy,
+    }, {
+        'seed': [2047],
+        'lr': [0.0001],
+        'bits': [2, 3, 4, 5],
+        'n_blocks': [3, 5, 6],
+        'n_feature': [16, 32, 48, 64],
+        'padding': ['default'],
+        'normalization': ['channel', 'group', 'batch', 'instance'],
+        'activation': ['prelu', 'relu', 'leaky'],
+        'batch_size': [8],
     })

@@ -102,6 +102,9 @@ class ConvLayer(nn.Module):
             self.normalization = nn.GroupNorm(4, out_ch)
         elif norm == 'batch':
             self.normalization = nn.BatchNorm2d(out_ch)
+        elif norm == 'instance':
+            self.normalization = nn.InstanceNorm2d(
+                out_ch, momentum=0.1, affine=True, track_running_stats=False)
         else:
             self.normalization = None
 
