@@ -20,6 +20,11 @@ parser.add_argument('--e', type=int, default=200, help='model epoch')
 parser.add_argument('--a', type=float, default=.75,
                     help='initial alpha gate for encoder')
 parser.add_argument('--cuda', action='store_true', help='use cuda')
+parser.add_argument('--n_blocks', type=int, help='')
+parser.add_argument('--n_feature', type=int, help='')
+parser.add_argument('--padding', type=str, help='')
+parser.add_argument('--normalization', type=str, help='')
+parser.add_argument('--activation', type=str, help='')
 
 opt = parser.parse_args()
 # print(opt)
