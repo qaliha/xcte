@@ -22,7 +22,7 @@ parser.add_argument('--a', type=float, default=.75,
 parser.add_argument('--cuda', action='store_true', help='use cuda')
 
 opt = parser.parse_args()
-print(opt)
+# print(opt)
 
 device = torch.device("cuda:0" if opt.cuda else "cpu")
 
@@ -36,7 +36,7 @@ model.load_state_dict(checkpoint['model_dict'])
 
 model.bit_size = checkpoint['bit']
 
-print(checkpoint['logs'])
+# print(checkpoint['logs'])
 print(model.Encoder.connection_weights)
 
 image_filenames = [x for x in os.listdir(image_dir) if is_image_file(x)]
@@ -84,8 +84,8 @@ for image_name in image_filenames:
         psnr_sum += _tmp_psnr_expanded
         ssim_sum += _tmp_ssim_expanded
 
-        print(_tmp_psnr_compressed, _tmp_ssim_compressed,
-              _tmp_psnr_expanded, _tmp_ssim_expanded)
+        # print(_tmp_psnr_compressed, _tmp_ssim_compressed,
+        #       _tmp_psnr_expanded, _tmp_ssim_expanded)
 
         if not os.path.exists("results"):
             os.makedirs("results")
@@ -96,7 +96,7 @@ for image_name in image_filenames:
         ), "results/{}_{}_expanded_{}".format(opt.name, opt.e, image_name))
 
         torch.save(
-            model, "model_{}_{}_expanded.pth".format(opt.name, opt.e))
+            model, "results/model_{}_{}_expanded.pth".format(opt.name, opt.e))
 
 print(psnr_sum/max(1, len(image_filenames)))
 print(ssim_sum/max(1, len(image_filenames)))
