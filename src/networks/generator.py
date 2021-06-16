@@ -87,6 +87,10 @@ class ConvLayer(nn.Module):
             self.activation = nn.PReLU()
         elif activation == 'tanh':
             self.activation = nn.Tanh()
+        elif activation == 'relu6':
+            self.activation = nn.ReLU6()
+        elif activation == 'rrelu':
+            self.activation = nn.RReLU()
         elif activation == 'relu':
             self.activation = nn.ReLU()
         elif activation == 'leaky':

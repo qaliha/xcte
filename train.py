@@ -3,7 +3,6 @@ from torchvision import transforms
 from loader import is_image_file
 import os
 import shutil
-import random
 import warnings
 import numpy as np
 import torch.optim as optim
@@ -447,7 +446,7 @@ if __name__ == '__main__':
         data_len_test = len(testing_data_loader)
         bar_test = tqdm(enumerate(testing_data_loader, 1),
                         total=data_len_test, disable=opt.silent)
-        r_intermedient = random.randint(0, data_len_test)
+        r_intermedient = torch.randint(0, data_len_test)
         for iteration, batch in bar_test:
             with torch.no_grad():
                 input = batch[0+3].to(device)
@@ -565,40 +564,37 @@ if __name__ == '__main__':
 
             state = {
                 'epoch': epoch + 1,
-                # Model
                 'model_dict': model.state_dict(),
-                # Optimizer
+                'bit': model.bit_size,
                 'optimizer_e': None,
                 'optimizer_g': None,
                 'optimizer_d': None,
-                # Scheduler
                 'scheduler_e': None,
                 'scheduler_g': None,
                 'scheduler_d': None,
-                'logs': train_logs_holder,
-                'max_psnr': max_psnr,
-                'max_psnr_epoch': max_psnr_epoch,
-                'bit': model.bit_size
+                'logs': None,
+                'max_psnr': None,
+                'max_psnr_epoch': None,
             }
 
             if mean_expanding_psnr >= max_psnr:
-                notice = f"Found new max PSNR on epoch {epoch}. {max_psnr} -> {mean_expanding_psnr}"
-                writer.add_text('logs', notice, epoch)
-                print(notice)
+                pass
+                # notice = f"Found new max PSNR on epoch {epoch}. {max_psnr} -> {mean_expanding_psnr}"
+                # writer.add_text('logs', notice, epoch)
+                # print(notice)
 
-                max_psnr = mean_expanding_psnr
-                max_psnr_epoch = epoch
+                # max_psnr = mean_expanding_psnr
+                # max_psnr_epoch = epoch
 
-                state['max_psnr'] = max_psnr
-                state['max_psnr_epoch'] = max_psnr_epoch
+                # state['max_psnr'] = max_psnr
+                # state['max_psnr_epoch'] = max_psnr_epoch
 
                 # are old file exist
-                modelmax_old_path = "checkpoint/{}/net_max.pth".format(
-                    opt.dataset)
-                if os.path.exists(modelmax_old_path):
-                    os.remove(modelmax_old_path)
+                # modelmax_old_path = "checkpoint/{}/net_max.pth".format(opt.dataset)
+                # if os.path.exists(modelmax_old_path):
+                #     os.remove(modelmax_old_path)
 
-                torch.save(state, modelmax_old_path)
+                # torch.save(state, modelmax_old_path)
 
             torch.save(state, model_out_path)
             print("Checkpoint saved to {} as {}".format(
@@ -657,10 +653,8 @@ if __name__ == '__main__':
             if not os.path.exists("results"):
                 os.makedirs("results")
 
-            save_img_version(compressed_image_dec.detach().squeeze(0).cpu(
-            ), "results/{}_{}_compressed_{}".format(opt.name, tmp_epoch, image_name))
-            save_img_version(expanded_image_dec.detach().squeeze(0).cpu(
-            ), "results/{}_{}_expanded_{}".format(opt.name, tmp_epoch, image_name))
+            # save_img_version(compressed_image_dec.detach().squeeze(0).cpu(), "results/{}_{}_compressed_{}".format(opt.name, tmp_epoch, image_name))
+            # save_img_version(expanded_image_dec.detach().squeeze(0).cpu(), "results/{}_{}_expanded_{}".format(opt.name, tmp_epoch, image_name))
 
     validation_psnr_accuracy = psnr_sum/max(1, len(image_filenames))
     validation_ssim_accuracy = ssim_sum/max(1, len(image_filenames))
@@ -672,6 +666,7 @@ if __name__ == '__main__':
         'seed': opt.seed,
         'lr': opt.lr,
         'bits': opt.bit,
+        'gpu': torch.cuda.get_device_name(0),
         # todo
         'n_blocks': opt.n_blocks,
         'n_feature': opt.n_feature,
@@ -682,7 +677,7 @@ if __name__ == '__main__':
         'batch_size': opt.batch_size,
         'initial_gate_w': opt.a,
         't_params_enc': summaryEncoder.total_params,
-        't_params_dec': summaryGenerator.total_params
+        't_params_dec': summaryGenerator.total_params,
     }, {
         'hparam/p_accuracy': validation_psnr_accuracy,
         'hparam/s_accuracy': validation_ssim_accuracy,
@@ -690,10 +685,10 @@ if __name__ == '__main__':
         'seed': [2047],
         'lr': [0.0001],
         'bits': [2, 3, 4, 5],
-        'n_blocks': [3, 5, 6],
+        'n_blocks': [4, 5, 6],
         'n_feature': [16, 32, 48, 64],
         'padding': ['default'],
         'normalization': ['channel', 'group', 'batch', 'instance'],
-        'activation': ['prelu', 'relu', 'leaky'],
+        'activation': ['prelu', 'relu', 'leaky', 'relu6', 'rrelu'],
         'batch_size': [8],
     })
