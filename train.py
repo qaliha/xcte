@@ -446,7 +446,7 @@ if __name__ == '__main__':
         data_len_test = len(testing_data_loader)
         bar_test = tqdm(enumerate(testing_data_loader, 1),
                         total=data_len_test, disable=opt.silent)
-        r_intermedient = torch.randint(0, data_len_test)
+        r_intermedient = torch.randint(0, data_len_test, (1,)).numpy()[0]
         for iteration, batch in bar_test:
             with torch.no_grad():
                 input = batch[0+3].to(device)
