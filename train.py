@@ -74,7 +74,7 @@ if __name__ == '__main__':
     criterion = MDFLoss('./weights/mdf.pth', opt.cuda)
 
     optimizer = optim.Adam(net.parameters(), lr=opt.lr)
-    sch_encoder = get_scheduler(optimizer, opt, option='step')
+    sch_encoder = get_scheduler(optimizer, opt, option='step', step_length=10)
 
     start_epoch = opt.epoch_count
 
