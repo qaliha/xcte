@@ -149,7 +149,7 @@ if __name__ == '__main__':
 
                     output_clamped = torch.clamp(output, 0, 1)
                     image_tensor = torchvision.utils.make_grid(
-                        [input.detach().squeeze(0), output_clamped.detach().squeeze(0)])
+                        [ground.detach().squeeze(0), input.detach().squeeze(0), output_clamped.detach().squeeze(0)])
 
                     if opt.tensorboard:
                         writer.add_image(
@@ -158,11 +158,11 @@ if __name__ == '__main__':
                     save_img_version(image_tensor.cpu(),
                                      'interm/{}.png'.format(epoch))
 
-                input_img = tensor2img(input)
+                output_img = tensor2img(output)
                 ground_img = tensor2img(ground)
 
-                _tmp_psnr = psnr(ground_img, input_img)
-                _tmp_ssim = ssim(input_img, ground_img)
+                _tmp_psnr = psnr(ground_img, output_img)
+                _tmp_ssim = ssim(output_img, ground_img)
 
                 psnrs.append(_tmp_psnr)
                 ssims.append(_tmp_ssim)
