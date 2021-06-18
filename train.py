@@ -67,7 +67,7 @@ if __name__ == '__main__':
     print('===> Building models')
 
     net = Model(opt=opt).to(device)
-    net.apply(initialize_parameters_kaiming)
+    # net.apply(initialize_parameters_kaiming)
     model_summary = summary(net, input_size=(opt.batch_size, 3, 128, 128))
 
     criterion = MDFLoss('./weights/mdf.pth', opt.cuda)
