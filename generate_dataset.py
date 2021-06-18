@@ -1,158 +1,77 @@
-import argparse
 import os
+import argparse
 import numpy as np
 
 from PIL import Image
 from tqdm import tqdm
-from sklearn.feature_extraction import image
+from sklearn.feature_extraction import image as GetPatches
 
-
-def mkdir(directory, mode=0o777):
-    if not os.path.exists(directory):
-        os.makedirs(directory)
-        os.chmod(directory, mode=mode)
-
-
-def dir_exists(directory):
-    return os.path.exists(directory)
-
-
-def crop(img_arr, block_size):
-    h_b, w_b = block_size
-    v_splited = np.vsplit(img_arr, img_arr.shape[0]//h_b)
-    h_splited = np.concatenate(
-        [np.hsplit(col, img_arr.shape[1]//w_b) for col in v_splited], 0)
-    return h_splited
-
-
-def generate_patches(src_path, files, set_path, crop_size, img_format, max_patches, resize, local_j=0, max_n=0):
-
-    local_local_j = local_j
-
-    img_path = os.path.join(src_path, files)
-    img = Image.open(img_path).convert('RGB')
-
-    # jika resize factor, factor > 1 atau factor < -1
-    if resize > 1 or resize < -1:
-        wi, he = img.size
-        if resize > 1:
-            wi = wi * resize
-            he = he * resize
-        else:
-            wi = wi // abs(resize)
-            he = he // abs(resize)
-
-        img = img.resize((wi, he), resample=Image.BICUBIC)
-
-    name, _ = files.split('.')
-    filedir = os.path.join(set_path, 'a')
-    if not dir_exists(filedir):
-        mkdir(filedir)
-
-    img = np.array(img)
-    h, w = img.shape[0], img.shape[1]
-
-    if crop_size == None:
-        img = np.copy(img)
-        img_patches = np.expand_dims(img, 0)
-    else:
-        if resize > 1 or resize < -1:
-            img_patches = image.extract_patches_2d(
-                img, (crop_size[0], crop_size[1]), max_patches=max_patches, random_state=0)
-        else:
-            rem_h = (h % crop_size[0])
-            rem_w = (w % crop_size[1])
-            img = img[:h-rem_h, :w-rem_w]
-            img_patches = crop(img, crop_size)
-
-        # rem_h = (h % crop_size[0])
-        # rem_w = (w % crop_size[1])
-        # img = img[:h-rem_h, :w-rem_w]
-        # img_patches = crop(img, crop_size)
-
-        # print('Cropped')
-
-    n = 0
-
-    for i in range(min(len(img_patches), max_patches)):
-        img = Image.fromarray(img_patches[i])
-
-        img.save(
-            os.path.join(filedir, '{}_{}.{}'.format(name, i, img_format))
-        )
-
-        n += 1
-        local_local_j += 1
-
-        if local_local_j >= max_n:
-            break
-
-    return n
-
-
-def main(target_dataset_folder, dataset_path, crop_size, img_format, max_patches, max_n, resize):
-    print('[ Creating Dataset ]')
-    print('Crop Size : {}'.format(crop_size))
-    print('Target       : {}'.format(target_dataset_folder))
-    print('Dataset       : {}'.format(dataset_path))
-    print('Format    : {}'.format(img_format))
-    print('Max N    : {}'.format(max_n))
-    print('Resize factor    : {}'.format(resize))
-
-    src_path = dataset_path
-    if not dir_exists(src_path):
-        raise(RuntimeError('Source folder not found, please put your dataset there'))
-
-    set_path = target_dataset_folder
-
-    mkdir(set_path)
-
-    img_files = os.listdir(src_path)
-
-    max = len(img_files)
-    bar = tqdm(img_files)
-    i = 0
-    j = 0
-    for files in bar:
-        k = generate_patches(src_path, files, set_path,
-                             crop_size, img_format, max_patches, resize, local_j=j, max_n=max_n)
-
-        bar.set_description(desc='itr: %d/%d' % (
-            i, max
-        ))
-
-        j += k
-
-        if j >= max_n:
-            # Stop the process
-            print('Dataset count has been fullfuled')
-            break
-
-        i += 1
-
-    print('Dataset Created')
+from src.utils.utils import dir_exists, mkdir, sp_halftone
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--target_dataset_folder', type=str,
-                        help='target folder where image saved')
-    parser.add_argument('--dataset_path', type=str,
-                        help='target folder where image saved')
-    parser.add_argument('--max_patches', type=int,
-                        help='target folder where image saved')
-    parser.add_argument('--max_n', type=int,
-                        help='target folder where image saved', default=99999999)
-    parser.add_argument('--crop_size', type=int,
+    parser.add_argument('--crop', type=int, default=0,
                         help='crop size, -1 to save whole images')
-    parser.add_argument('--img_format', type=str, help='image format e.g. png')
-    parser.add_argument(
-        '--resize', type=int, default=0, help='resize image to that factor, positive (+) for upsample, (-) for downsample')
+    parser.add_argument('--target', type=str, default='',
+                        help='target folder where image saved')
+    parser.add_argument('--path', type=str, default='',
+                        help='source dataset folder')
+    parser.add_argument('--max', type=int, default=1,
+                        help='maximum patches per images')
 
     args = parser.parse_args()
+    crop_size = [args.crop, args.crop] if args.crop > 0 else None
 
-    crop_size = [args.crop_size,
-                 args.crop_size] if args.crop_size > 0 else None
-    main(args.target_dataset_folder, args.dataset_path,
-         crop_size, args.img_format, args.max_patches, args.max_n, args.resize)
+    print('Creating dataset...')
+
+    src_path = args.path
+    if not dir_exists(src_path):
+        raise(RuntimeError('Source folder not found, please put your dataset there'))
+
+    set_path = args.target
+    mkdir(set_path)
+
+    img_files = os.listdir(src_path)
+    max_files = len(img_files)
+    bar = tqdm(img_files)
+    j = 0
+    for files in bar:
+        # Open image
+        img_path = os.path.join(src_path, files)
+        img = Image.open(img_path).convert('RGB')
+
+        name, _ = files.split('.')
+        filedir = os.path.join(set_path, 'a')
+        if not dir_exists(filedir):
+            mkdir(filedir)
+
+        filedir_b = os.path.join(set_path, 'b')
+        if not dir_exists(filedir_b):
+            mkdir(filedir_b)
+
+        img_array = np.array(img)
+        if crop_size == None:
+            img_array = np.copy(img_array)
+            img_patches = np.expand_dims(img_array, 0)
+        else:
+            img_patches = GetPatches.extract_patches_2d(
+                img_array, (crop_size[0], crop_size[1]), max_patches=args.max, random_state=0)
+
+        for i in range(len(img_patches)):
+            # Do halftoning
+            img = Image.fromarray(img_patches[i])
+            img_halftoned = sp_halftone(img.convert('RGB'))
+
+            img.save(os.path.join(filedir, '{}_{}.{}'.format(name, i, 'png')))
+            img_halftoned.save(os.path.join(
+                filedir_b, '{}_{}.{}'.format(name, i, 'png')))
+
+        bar.set_description(desc='itr: %d/%d' % (
+            j, max_files
+        ))
+
+        j += 1
+
+    print('Dataset created')
