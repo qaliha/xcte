@@ -47,9 +47,8 @@ if __name__ == '__main__':
     print('===> Loading datasets')
     root_path = "dataset/"
     train_set = get_training_set(
-        root_path + opt.dataset, scale_n_crop=opt.noscale == False)
-    test_set = get_test_set(root_path + opt.dataset,
-                            scale_n_crop=opt.noscale == False)
+        root_path + opt.dataset)
+    test_set = get_test_set(root_path + opt.dataset)
 
     training_data_loader = DataLoader(
         dataset=train_set, num_workers=4, batch_size=opt.batch_size, shuffle=True)

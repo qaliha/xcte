@@ -14,8 +14,6 @@ def get_arguments():
 
     # Training
     parser.add_argument('--cuda', action='store_true', help='use cuda?')
-    parser.add_argument('--noscale', action='store_true',
-                        help='use scale and random crop?')
 
     parser.add_argument('--epochsave', type=int, default=50, help='test')
 
