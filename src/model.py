@@ -13,9 +13,9 @@ class Model(nn.Module):
         num_feature = 64
 
         cnn_kwargs = dict(kernel_size=3, stride=1,
-                          activation='relu', norm='skip', padding='zero')
+                          activation='relu', norm='skip', padding='default')
         cnn_kwargs_output = dict(kernel_size=3, stride=1,
-                                 activation='skip', norm='skip', padding='zero')
+                                 activation='skip', norm='skip', padding='default')
 
         gm_layers = list()
         drm_layers = list()
