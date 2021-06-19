@@ -17,6 +17,7 @@ parser.add_argument('--checkpoint', required=True, help='checkpoint folder')
 # parser.add_argument('--bit', type=int, required=True, help='bit len')
 parser.add_argument('--name', required=True, help='model name')
 parser.add_argument('--e', type=int, default=200, help='model epoch')
+parser.add_argument('--bit', type=int, default=0, help='custom bit')
 parser.add_argument('--a', type=float, default=.75,
                     help='initial alpha gate for encoder')
 parser.add_argument('--cuda', action='store_true', help='use cuda')
@@ -42,7 +43,10 @@ model.load_state_dict(checkpoint['model_dict'])
 
 model.bit_size = checkpoint['bit']
 
-print(checkpoint['logs'])
+if opt.bit > 0:
+    model.bit_size = opt.bit
+
+# print(checkpoint['logs'])
 # print(model.Encoder.connection_weights)
 
 image_filenames = [x for x in os.listdir(image_dir) if is_image_file(x)]
@@ -104,5 +108,5 @@ for image_name in image_filenames:
         torch.save(
             model, "results/model_{}_{}_expanded.pth".format(opt.name, opt.e))
 
-print(psnr_sum/max(1, len(image_filenames)))
-print(ssim_sum/max(1, len(image_filenames)))
+print("Model {}b -> {}b: {}, {}".format(checkpoint['bit'], model.bit_size, psnr_sum/max(1, len(image_filenames)),
+      ssim_sum/max(1, len(image_filenames))))
