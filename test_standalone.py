@@ -42,8 +42,8 @@ model.load_state_dict(checkpoint['model_dict'])
 
 model.bit_size = checkpoint['bit']
 
-# print(checkpoint['logs'])
-print(model.Encoder.connection_weights)
+print(checkpoint['logs'])
+# print(model.Encoder.connection_weights)
 
 image_filenames = [x for x in os.listdir(image_dir) if is_image_file(x)]
 
