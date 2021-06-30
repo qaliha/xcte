@@ -79,6 +79,8 @@ if __name__ == '__main__':
         model.Encoder, input_size=(opt.batch_size, 3, 128, 128))
     summaryGenerator = summary(
         model.Generator, input_size=(opt.batch_size, 3, 128, 128))
+    summaryDiscriminator = summary(
+        model.Discriminator, input_size=(opt.batch_size, 6, 128, 128))
 
     opt_encoder = optim.Adam(model.Encoder.parameters(), lr=opt.lr)
     opt_generator = optim.Adam(model.Generator.parameters(), lr=opt.lr)
