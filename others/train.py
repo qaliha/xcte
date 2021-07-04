@@ -90,8 +90,8 @@ def main(opt):
         if not os.path.exists(os.path.join("checkpoint", opt.dataset)):
             os.mkdir(os.path.join("checkpoint", opt.dataset))
 
-        model_out_path = "checkpoint/{}/net_{}_epoch_{}.pth".format(
-            opt.dataset, opt.name, epoch)
+        model_out_path = "checkpoint/{}/net_{}.pth".format(
+            opt.dataset, opt.name)
 
         torch.save(net, model_out_path)
 
