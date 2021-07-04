@@ -3,7 +3,7 @@ import torch.nn as nn
 import torchinfo
 import torch.optim as optim
 
-from .utils import ConvLayer, DeconvLayer, FeatureExtractor
+from utils import ConvLayer, DeconvLayer, FeatureExtractor
 
 
 class UNet(nn.Module):

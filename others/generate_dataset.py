@@ -5,7 +5,7 @@ import numpy as np
 from PIL import Image
 from tqdm import tqdm
 from sklearn.feature_extraction import image
-from .utils import mkdir, dir_exists
+from utils import mkdir, dir_exists
 import torch
 import torchvision
 
