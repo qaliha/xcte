@@ -15,7 +15,7 @@ warnings.filterwarnings("ignore")
 
 
 def main(opt):
-    root_path = "../dataset/"
+    root_path = "dataset/"
 
     train_set = get_training_set(root_path + opt.dataset)
     test_set = get_test_set(root_path + opt.dataset)
@@ -85,12 +85,12 @@ def main(opt):
             mean_compressiong_psnr
         ))
 
-        if not os.path.exists("../checkpoint"):
-            os.mkdir("../checkpoint")
-        if not os.path.exists(os.path.join("../checkpoint", opt.dataset)):
-            os.mkdir(os.path.join("../checkpoint", opt.dataset))
+        if not os.path.exists("checkpoint"):
+            os.mkdir("checkpoint")
+        if not os.path.exists(os.path.join("checkpoint", opt.dataset)):
+            os.mkdir(os.path.join("checkpoint", opt.dataset))
 
-        model_out_path = "../checkpoint/{}/net_{}_epoch_{}.pth".format(
+        model_out_path = "checkpoint/{}/net_{}_epoch_{}.pth".format(
             opt.dataset, opt.name, epoch)
 
         torch.save(net, model_out_path)
