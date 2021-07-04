@@ -6,8 +6,8 @@ import torch
 import numpy as np
 from tqdm import tqdm
 from torch.utils.data import DataLoader
-from .utils import get_training_set, get_test_set, tensor2img, psnr
-from .networks import Model
+from utils import get_training_set, get_test_set, tensor2img, psnr
+from networks import Model
 from torchinfo import summary
 
 
