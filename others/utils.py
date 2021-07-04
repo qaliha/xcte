@@ -1,5 +1,7 @@
 import os
 import torch
+import math
+import torch.nn.functional as F
 import torch.nn as nn
 import torchvision.models as models
 import numpy as np
@@ -147,3 +149,18 @@ def psnr(ground, compressed):
     mse = np.mean((np_ground - np_compressed)**2)
     psnr = np.log10(255**2/mse) * 10
     return psnr
+
+
+def add_padding(tensor, p):
+    b, c, h, w = tensor.shape
+
+    if h % p == 0 and w % p == 0 and (h == w):
+        return tensor, h, w
+
+    mx = max((math.ceil(h / (p + 0.0)) * p), (math.ceil(w / (p + 0.0)) * p))
+
+    padding_h = max(0, mx - h)
+    padding_w = max(0, mx - w)
+
+    tensor = F.pad(tensor, [0, padding_w, 0, padding_h], 'reflect')
+    return tensor, h, w

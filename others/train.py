@@ -6,12 +6,21 @@ import torch
 import numpy as np
 from tqdm import tqdm
 from torch.utils.data import DataLoader
-from utils import get_training_set, get_test_set, tensor2img, psnr
+from torchvision import transforms
+from utils import get_training_set, get_test_set, tensor2img, psnr, add_padding, is_image_file
+from generate_dataset import _compress
 from networks import Model
 from torchinfo import summary
-
+from PIL import Image
 
 warnings.filterwarnings("ignore")
+
+
+def load_img(filepath, resize=True):
+    img = Image.open(filepath).convert('RGB')
+    if resize:
+        img = img.resize((256, 256), Image.BICUBIC)
+    return img
 
 
 def main(opt):
@@ -31,7 +40,10 @@ def main(opt):
 
     summaryEncoder = summary(net, input_size=(opt.batch, 3, 256, 256))
     num_epoch = opt.nepoch + 1
+    tmp_epoch = 0
     for epoch in range(1, num_epoch):
+        tmp_epoch = epoch
+
         data_len = len(training_data_loader)
         bar = tqdm(enumerate(training_data_loader, 1),
                    total=data_len, disable=opt.silent)
@@ -94,6 +106,48 @@ def main(opt):
             opt.dataset, opt.name)
 
         torch.save(net, model_out_path)
+
+    image_dir = "datasets_test/datasets/a/"
+    image_filenames = [x for x in os.listdir(image_dir) if is_image_file(x)]
+
+    transform_list = [transforms.ToTensor()]
+
+    transform = transforms.Compose(transform_list)
+
+    psnr_sum = 0
+    for image_name in image_filenames:
+        with torch.no_grad():
+            # get input image
+            input = load_img(image_dir + image_name, resize=False)
+
+            # transforms and other operation
+            input = transform(input)
+            input = input.unsqueeze(0).to(device)
+
+            input_padded, h, w = add_padding(input, 128)
+            compressed_image = _compress(input_padded, 3)
+
+            expanded_image = net(compressed_image)
+
+            expanded_image_dec = expanded_image[:, :, :h, :w]
+
+            input_img = tensor2img(input)
+            expanded_img = tensor2img(expanded_image_dec)
+
+            _tmp_psnr_expanded = psnr(input_img, expanded_img)
+
+            psnr_sum += _tmp_psnr_expanded
+
+            if not os.path.exists("results"):
+                os.makedirs("results")
+
+            input_img.save(
+                "results/{}_{}_compressed_{}".format(opt.name, tmp_epoch, image_name))
+            expanded_img.save(
+                "results/{}_{}_expanded_{}".format(opt.name, tmp_epoch, image_name))
+
+    validation_psnr_accuracy = psnr_sum/max(1, len(image_filenames))
+    print(validation_psnr_accuracy)
 
 
 if __name__ == '__main__':
