@@ -21,9 +21,9 @@ def main(opt):
     test_set = get_test_set(root_path + opt.dataset)
 
     training_data_loader = DataLoader(
-        dataset=train_set, num_workers=4, batch_size=opt.batch_size, shuffle=True)
+        dataset=train_set, num_workers=4, batch_size=opt.batch, shuffle=True)
     testing_data_loader = DataLoader(
-        dataset=test_set, num_workers=4, batch_size=opt.test_batch_size, shuffle=False)
+        dataset=test_set, num_workers=4, batch_size=opt.batch, shuffle=False)
 
     device = torch.device("cuda:0" if opt.cuda else "cpu")
 
