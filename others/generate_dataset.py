@@ -38,7 +38,7 @@ def crop(img_arr, block_size):
     return h_splited
 
 
-def generate_patches(src_path, files, set_path, crop_size, img_format, max_patches, resize, local_j=0, max_n=0):
+def generate_patches(src_path, files, set_path, crop_size, img_format, max_patches, resize, bit, local_j=0, max_n=0):
 
     local_local_j = local_j
 
@@ -88,7 +88,7 @@ def generate_patches(src_path, files, set_path, crop_size, img_format, max_patch
         img = Image.fromarray(img_patches[i])
 
         tensor = torchvision.transforms.ToTensor()(img)
-        compressed_image = _compress(tensor, 3)
+        compressed_image = _compress(tensor, bit)
 
         img_compressed = tensor2img(compressed_image)
 
@@ -109,7 +109,7 @@ def generate_patches(src_path, files, set_path, crop_size, img_format, max_patch
     return n
 
 
-def main(target_dataset_folder, dataset_path, crop_size, img_format, max_patches, max_n, resize):
+def main(target_dataset_folder, dataset_path, crop_size, img_format, max_patches, max_n, resize, bit):
     print('[ Creating Dataset ]')
     print('Crop Size : {}'.format(crop_size))
     print('Target       : {}'.format(target_dataset_folder))
@@ -117,6 +117,7 @@ def main(target_dataset_folder, dataset_path, crop_size, img_format, max_patches
     print('Format    : {}'.format(img_format))
     print('Max N    : {}'.format(max_n))
     print('Resize factor    : {}'.format(resize))
+    print('Bit    : {}'.format(bit))
 
     src_path = dataset_path
     if not dir_exists(src_path):
@@ -134,7 +135,7 @@ def main(target_dataset_folder, dataset_path, crop_size, img_format, max_patches
     j = 0
     for files in bar:
         k = generate_patches(src_path, files, set_path,
-                             crop_size, img_format, max_patches, resize, local_j=j, max_n=max_n)
+                             crop_size, img_format, max_patches, resize, bit, local_j=j, max_n=max_n)
 
         bar.set_description(desc='itr: %d/%d' % (
             i, max
@@ -155,6 +156,7 @@ def main(target_dataset_folder, dataset_path, crop_size, img_format, max_patches
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
+    parser.add_argument('--bit', required=True, type=int, help='bit')
     parser.add_argument('--target_dataset_folder', type=str,
                         help='target folder where image saved')
     parser.add_argument('--dataset_path', type=str,
@@ -174,4 +176,4 @@ if __name__ == '__main__':
     crop_size = [args.crop_size,
                  args.crop_size] if args.crop_size > 0 else None
     main(args.target_dataset_folder, args.dataset_path,
-         crop_size, args.img_format, args.max_patches, args.max_n, args.resize)
+         crop_size, args.img_format, args.max_patches, args.max_n, args.resize, args.bit)

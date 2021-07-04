@@ -125,13 +125,14 @@ def main(opt):
             input = input.unsqueeze(0).to(device)
 
             input_padded, h, w = add_padding(input, 128)
-            compressed_image = _compress(input_padded, 3)
+            compressed_image = _compress(input_padded, opt.bit)
 
             expanded_image = net(compressed_image)
 
             expanded_image_dec = expanded_image[:, :, :h, :w]
 
             input_img = tensor2img(input)
+            compressed_img = tensor2img(compressed_image)
             expanded_img = tensor2img(expanded_image_dec)
 
             _tmp_psnr_expanded = psnr(input_img, expanded_img)
@@ -141,7 +142,7 @@ def main(opt):
             if not os.path.exists("results"):
                 os.makedirs("results")
 
-            input_img.save(
+            compressed_img.save(
                 "results/{}_{}_compressed_{}".format(opt.name, tmp_epoch, image_name))
             expanded_img.save(
                 "results/{}_{}_expanded_{}".format(opt.name, tmp_epoch, image_name))
@@ -156,6 +157,7 @@ if __name__ == '__main__':
     parser.add_argument('--model', required=True, help='model')
 
     parser.add_argument('--dataset', required=True, help='path')
+    parser.add_argument('--bit', required=True, type=int, help='bit')
     parser.add_argument('--name', required=True, help='name')
     parser.add_argument('--nepoch', type=int, default=50, help='#')
     parser.add_argument('--cuda', action='store_true', help='cuda')
