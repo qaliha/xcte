@@ -62,7 +62,7 @@ def generate_patches(src_path, files, set_path, crop_size, img_format, max_patch
     if not dir_exists(filedir):
         mkdir(filedir)
 
-    filedirb = os.path.join(set_path, 'a')
+    filedirb = os.path.join(set_path, 'b')
     if not dir_exists(filedirb):
         mkdir(filedirb)
 
