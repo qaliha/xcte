@@ -21,7 +21,7 @@ class FeatureExtractor(nn.Module):
         # 28: block5_conv1
         self.req_features = ['0']
         self.model = models.vgg19(
-            pretrained=True).features[:int(self.req_features[-1])].eval()
+            pretrained=True).features[:int(self.req_features[-1])+1].eval()
 
         # freeze parameters
         for p in self.model.parameters():
