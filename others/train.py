@@ -23,7 +23,7 @@ def main(opt):
     training_data_loader = DataLoader(
         dataset=train_set, num_workers=4, batch_size=opt.batch, shuffle=True)
     testing_data_loader = DataLoader(
-        dataset=test_set, num_workers=4, batch_size=opt.batch, shuffle=False)
+        dataset=test_set, num_workers=4, batch_size=1, shuffle=False)
 
     device = torch.device("cuda:0" if opt.cuda else "cpu")
 
@@ -48,7 +48,7 @@ def main(opt):
 
             t_loss += losses
             if not opt.silent:
-                bar.set_description(desc='itr: %d/%d [%3d/%3d] [D: %.8f] Training' % (
+                bar.set_description(desc='itr: %d/%d [%3d/%3d] [Dec: %.8f] Training' % (
                     iteration, data_len, epoch, num_epoch - 1,
                     t_loss/max(1, iteration)
                 ))
