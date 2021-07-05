@@ -71,6 +71,6 @@ if __name__ == '__main__':
             os.makedirs("out")
 
         save_img_version(compressed_image_dec.detach().squeeze(0).cpu(
-        ), "out/{}".format(opt.output))
+        ), "out/com_{}".format(opt.output))
         save_img_version(expanded_image_dec.detach().squeeze(0).cpu(
         ), "out/{}".format(opt.output))
