@@ -96,6 +96,7 @@ dataset/*
 interm/*
 checkpoints/*
 checkpoint/*
+out/*
 
 dataset_test/*
 
