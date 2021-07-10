@@ -107,48 +107,50 @@ def main(opt):
 
         torch.save(net, model_out_path)
 
-    image_dir = "datasets_test/datasets/a/"
-    image_filenames = [x for x in os.listdir(image_dir) if is_image_file(x)]
+    if opt.model == 'unet':
+        image_dir = "datasets_test/datasets/a/"
+        image_filenames = [x for x in os.listdir(
+            image_dir) if is_image_file(x)]
 
-    transform_list = [transforms.ToTensor()]
+        transform_list = [transforms.ToTensor()]
 
-    transform = transforms.Compose(transform_list)
+        transform = transforms.Compose(transform_list)
 
-    psnr_sum = 0
-    for image_name in image_filenames:
-        with torch.no_grad():
-            # get input image
-            input = load_img(image_dir + image_name, resize=False)
+        psnr_sum = 0
+        for image_name in image_filenames:
+            with torch.no_grad():
+                # get input image
+                input = load_img(image_dir + image_name, resize=False)
 
-            # transforms and other operation
-            input = transform(input)
-            input = input.unsqueeze(0).to(device)
+                # transforms and other operation
+                input = transform(input)
+                input = input.unsqueeze(0).to(device)
 
-            input_padded, h, w = add_padding(input, 128)
-            compressed_image = _compress(input_padded, opt.bit)
+                input_padded, h, w = add_padding(input, 128)
+                compressed_image = _compress(input_padded, opt.bit)
 
-            expanded_image = net(compressed_image)
+                expanded_image = net(compressed_image)
 
-            expanded_image_dec = expanded_image[:, :, :h, :w]
+                expanded_image_dec = expanded_image[:, :, :h, :w]
 
-            input_img = tensor2img(input)
-            compressed_img = tensor2img(compressed_image)
-            expanded_img = tensor2img(expanded_image_dec)
+                input_img = tensor2img(input)
+                compressed_img = tensor2img(compressed_image)
+                expanded_img = tensor2img(expanded_image_dec)
 
-            _tmp_psnr_expanded = psnr(input_img, expanded_img)
+                _tmp_psnr_expanded = psnr(input_img, expanded_img)
 
-            psnr_sum += _tmp_psnr_expanded
+                psnr_sum += _tmp_psnr_expanded
 
-            if not os.path.exists("results"):
-                os.makedirs("results")
+                if not os.path.exists("results"):
+                    os.makedirs("results")
 
-            compressed_img.save(
-                "results/{}_{}_compressed_{}".format(opt.name, tmp_epoch, image_name))
-            expanded_img.save(
-                "results/{}_{}_expanded_{}".format(opt.name, tmp_epoch, image_name))
+                compressed_img.save(
+                    "results/{}_{}_compressed_{}".format(opt.name, tmp_epoch, image_name))
+                expanded_img.save(
+                    "results/{}_{}_expanded_{}".format(opt.name, tmp_epoch, image_name))
 
-    validation_psnr_accuracy = psnr_sum/max(1, len(image_filenames))
-    print(validation_psnr_accuracy)
+        validation_psnr_accuracy = psnr_sum/max(1, len(image_filenames))
+        print(validation_psnr_accuracy)
 
 
 if __name__ == '__main__':
