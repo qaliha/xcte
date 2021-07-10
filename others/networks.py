@@ -6,6 +6,122 @@ import torch.optim as optim
 from utils import ConvLayer, DeconvLayer, FeatureExtractor
 
 
+class ConvLayer(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel, stride, norm='skip', activation='skip'):
+        super(ConvLayer, self).__init__()
+        assert(norm in ('skip', 'batch', 'channel'))
+        assert(activation in ('skip', 'relu', 'prelu'))
+
+        self.pad = nn.ReflectionPad2d(kernel//2)
+        self.conv = nn.Conv2d(in_channels, out_channels, kernel, stride)
+        self.norm = None
+        self.activation = None
+
+        if norm == 'batch':
+            self.norm = nn.BatchNorm2d(out_channels)
+
+        if activation == 'relu':
+            self.activation = nn.ReLU()
+        elif activation == 'prelu':
+            self.activation = nn.PReLU()
+
+    def forward(self, x):
+        x = self.pad(x)
+        x = self.conv(x)
+        if self.norm is not None:
+            x = self.norm(x)
+        if self.activation is not None:
+            x = self.activation(x)
+
+        return x
+
+
+class PixCNN(nn.Module):
+    def __init__(self, n_features=64):
+        super(PixCNN, self).__init__()
+
+        self.conv_blocks = nn.Sequential(
+            ConvLayer(3, n_features, 3, 1, activation='relu'),
+            ConvLayer(n_features, n_features, 3, 1, activation='relu'),
+            ConvLayer(n_features, 3, 3, 1),
+        )
+
+    def forward(self, x):
+        out = self.conv_blocks(x)
+
+        out += x
+        return out
+
+
+class ResidualBlockNext(nn.Module):
+    def __init__(self, num_layers=5, n_features=64):
+        super(ResidualBlockNext, self).__init__()
+
+        self.conv_1 = ConvLayer(3, n_features, 3, 1)
+        self.conv_2 = ConvLayer(n_features, n_features, 3, 1)
+        self.conv_3 = ConvLayer(n_features, 3, 3, 1)
+
+        blocks = []
+        blocks.append(ConvLayer(n_features, n_features*2, 3,
+                      1, norm='batch', activation='relu'))
+        for _ in range(num_layers-2):
+            blocks.append(ConvLayer(n_features*2, n_features*2, 3,
+                          1, norm='batch', activation='relu'))
+        blocks.append(ConvLayer(n_features*2, n_features, 3, 1, norm='batch'))
+
+        self.conv_blocks = nn.Sequential(*blocks)
+
+    def forward(self, x):
+        out_conv1 = self.conv_1(x)
+        out_blocks = self.conv_blocks(out_conv1)
+
+        out_blocks += out_conv1
+        out_conv2 = self.conv_2(out_blocks)
+
+        out_conv2 += out_conv1
+        out_conv3 = self.conv_3(out_conv2)
+
+        return out_conv3
+
+
+class ResidualBlock(nn.Module):
+    def __init__(self, num_layers=5, n_features=64):
+        super(ResidualBlock, self).__init__()
+        assert(num_layers - 2 > 0)
+
+        blocks = []
+        blocks.append(ConvLayer(3, n_features, 3, 1, activation='relu'))
+        for _ in range(num_layers-2):
+            blocks.append(ConvLayer(n_features, n_features,
+                          3, 1, activation='relu'))
+        blocks.append(ConvLayer(n_features, 3, 3, 1))
+
+        self.conv_blocks = nn.Sequential(*blocks)
+
+    def forward(self, x):
+        out = self.conv_blocks(x)
+
+        out += x
+        return out
+
+
+class ModifiedResidualModel(nn.Module):
+    def __init__(self):
+        super(ModifiedResidualModel, self).__init__()
+
+        self.residual_convolutions_first = ResidualBlock()
+        self.residual_convolutions_end = ResidualBlockNext()
+
+        self.pCNN = PixCNN()
+
+    def forward(self, x):
+        x = self.residual_convolutions_first(x)
+        x = self.residual_convolutions_end(x)
+
+        out = self.pCNN(x)
+        return out
+
+
 class UNet(nn.Module):
     def __init__(self):
         super(UNet, self).__init__()
@@ -61,11 +177,13 @@ class UNet(nn.Module):
 class Model(nn.Module):
     def __init__(self, device, model, opt={}):
         super(Model, self).__init__()
-        assert(model in ('unet'))
+        assert(model in ('unet', 'mod_resblocks'))
         assert(opt.criterion in ('mse', 'vgg19'))
 
         if model == 'unet':
             self.model = UNet().to(device)
+        elif model == 'mod_resblocks':
+            self.model = ModifiedResidualModel().to(device)
 
         self.optimizer = optim.Adam(self.model.parameters(), lr=opt.lr)
         self.criterion = opt.criterion
@@ -105,7 +223,7 @@ class Model(nn.Module):
 
 
 if __name__ == '__main__':
-    net = Model(model='unet')
+    net = Model(torch.device('cpu'), 'mod_resblocks')
 
     torchinfo.summary(net, input_size=(1, 3, 256, 256))
 
