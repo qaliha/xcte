@@ -43,7 +43,7 @@ def main(opt):
 
     net = Model(device, opt.model, opt)
 
-    summaryEncoder = summary(net, input_size=(opt.batch, 3, 128, 128))
+    summaryNet = summary(net, input_size=(opt.batch, 3, 128, 128))
     num_epoch = opt.nepoch + 1
     tmp_epoch = 0
     for epoch in range(1, num_epoch):
@@ -58,9 +58,9 @@ def main(opt):
 
         for iteration, batch in bar:
             clean = batch[0].to(device)
-            compressed = batch[1].to(device)
+            halftoned = batch[1].to(device)
 
-            net.set_input(compressed, clean)
+            net.set_input(halftoned, clean)
             losses = net.optimize()
 
             t_loss += losses
@@ -82,9 +82,9 @@ def main(opt):
         for iteration, batch in bar_test:
             with torch.no_grad():
                 clean = batch[0].to(device)
-                compressed = batch[0].to(device)
+                halftoned = batch[0].to(device)
 
-                clean_reconstructed = net(compressed)
+                clean_reconstructed = net(halftoned)
 
                 clean_img = tensor2img(clean)
                 clean_reconstructed_img = tensor2img(clean_reconstructed)
@@ -117,6 +117,93 @@ def main(opt):
             opt.dataset, opt.name)
 
         torch.save(net, model_out_path)
+
+    if opt.model == 'mod_resblocks':
+        # train pixCNN after training denoising model
+        pixcnn_max_epochs = 10
+        pix = Model(device, 'pixcnn', opt)
+
+        summaryPix = summary(pix, input_size=(opt.batch, 3, 128, 128))
+
+        num_epoch = pixcnn_max_epochs + 1
+        tmp_epoch = 0
+        for epoch in range(1, num_epoch):
+            tmp_epoch = epoch
+
+            data_len = len(training_data_loader)
+            bar = tqdm(enumerate(training_data_loader, 1),
+                       total=data_len, disable=opt.silent)
+
+            t_loss = 0
+            pix.train()
+
+            # set requires grad False for net
+            net.set_requires_grad_cs(False)
+            net.eval()
+            for iteration, batch in bar:
+                clean = batch[0].to(device)
+                halftoned = batch[1].to(device)
+
+                reconstructed = net(halftoned)
+                pix.set_input(reconstructed, clean)
+                losses = pix.optimize()
+
+                t_loss += losses
+                if not opt.silent:
+                    bar.set_description(desc='itr: %d/%d [%3d/%3d] [CorrectedLoss: %.8f] Training Pix' % (
+                        iteration, data_len, epoch, num_epoch - 1,
+                        t_loss/max(1, iteration)
+                    ))
+
+            # print loss
+            print(t_loss/max(1, iteration))
+
+            data_len_test = len(testing_data_loader)
+            bar_test = tqdm(enumerate(testing_data_loader, 1),
+                            total=data_len_test, disable=opt.silent)
+
+            pix.eval()
+            psnrs = list()
+            for iteration, batch in bar_test:
+                with torch.no_grad():
+                    clean = batch[0].to(device)
+                    halftoned = batch[0].to(device)
+
+                    clean_reconstructed = net(halftoned)
+                    clean_reconstructed_corrected = pix(clean_reconstructed)
+
+                    clean_img = tensor2img(clean)
+                    clean_reconstructed_img = tensor2img(
+                        clean_reconstructed_corrected)
+
+                    tmp_psnr = psnr(clean_img, clean_reconstructed_img)
+
+                    psnrs.append(tmp_psnr)
+
+                    if not opt.silent:
+                        bar_test.set_description(desc='itr: %d/%d [%3d/%3d] PSNR: %.4fdb Testing Image' % (
+                            iteration, data_len_test, epoch, num_epoch - 1,
+                            tmp_psnr
+                        ))
+
+            mean_compressiong_psnr = np.ma.masked_invalid(psnrs).mean()
+            print('[%3d/%3d] Corrected PSNR: %.4fdb <-- Average' % (
+                epoch, num_epoch - 1,
+                mean_compressiong_psnr
+            ))
+
+            # update learning rate
+            pix.step_scheduler()
+
+            if not os.path.exists("checkpoint"):
+                os.mkdir("checkpoint")
+            if not os.path.exists(os.path.join("checkpoint", opt.dataset)):
+                os.mkdir(os.path.join("checkpoint", opt.dataset))
+
+            model_out_path = "checkpoint/{}/net_{}_pix.pth".format(
+                opt.dataset, opt.name)
+
+            torch.save(net, model_out_path)
 
     if opt.model == 'unet':
         image_dir = "datasets_test/datasets/a/"

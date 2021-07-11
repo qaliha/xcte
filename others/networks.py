@@ -112,13 +112,10 @@ class ModifiedResidualModel(nn.Module):
         self.residual_convolutions_first = ResidualBlock()
         self.residual_convolutions_end = ResidualBlockNext()
 
-        self.pCNN = PixCNN()
-
     def forward(self, x):
         x = self.residual_convolutions_first(x)
-        x = self.residual_convolutions_end(x)
+        out = self.residual_convolutions_end(x)
 
-        out = self.pCNN(x)
         return out
 
 
@@ -177,13 +174,15 @@ class UNet(nn.Module):
 class Model(nn.Module):
     def __init__(self, device, model, opt={}):
         super(Model, self).__init__()
-        assert(model in ('unet', 'mod_resblocks'))
+        assert(model in ('unet', 'mod_resblocks', 'pixcnn'))
         assert(opt.criterion in ('mse', 'vgg19'))
 
         if model == 'unet':
             self.model = UNet().to(device)
         elif model == 'mod_resblocks':
             self.model = ModifiedResidualModel().to(device)
+        elif model == 'pixcnn':
+            self.model = PixCNN().to(device)
 
         self.optimizer = optim.Adam(self.model.parameters(), lr=opt.lr)
         self.criterion = opt.criterion
@@ -215,6 +214,19 @@ class Model(nn.Module):
 
     def forward(self, x):
         return self.model(x)
+
+    def set_requires_grad_cs(self, requires_grad=False):
+        """Set requies_grad=Fasle for all the networks to avoid unnecessary computations
+        Parameters:
+            nets (network list)   -- a list of networks
+            requires_grad (bool)  -- whether the networks require gradients or not
+        """
+        if not isinstance(self.model, list):
+            nets = [self.model]
+        for net in nets:
+            if net is not None:
+                for param in net.parameters():
+                    param.requires_grad = requires_grad
 
     def set_input(self, input, ground_truth):
         self.input = input
