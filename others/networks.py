@@ -177,14 +177,18 @@ class Model(nn.Module):
         assert(model in ('unet', 'mod_resblocks', 'pixcnn'))
         assert(opt.criterion in ('mse', 'vgg19'))
 
+        decay = 0.0
+
         if model == 'unet':
             self.model = UNet().to(device)
         elif model == 'mod_resblocks':
+            decay = 0.0001
             self.model = ModifiedResidualModel().to(device)
         elif model == 'pixcnn':
             self.model = PixCNN().to(device)
 
-        self.optimizer = optim.Adam(self.model.parameters(), lr=opt.lr)
+        self.optimizer = optim.Adam(
+            self.model.parameters(), lr=opt.lr, weight_decay=decay)
         self.criterion = opt.criterion
         self.mse = nn.MSELoss()
         self.vgg19 = FeatureExtractor().to(device)
