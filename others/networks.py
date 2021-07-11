@@ -189,6 +189,11 @@ class Model(nn.Module):
         self.criterion = opt.criterion
         self.mse = nn.MSELoss()
         self.vgg19 = FeatureExtractor().to(device)
+        self.scheduler = None
+
+        if model == 'mod_resblocks':
+            self.scheduler = optim.lr_scheduler.StepLR(
+                self.optimizer, step_size=5, gamma=0.5)
 
         self.input = None
         self.ground_truth = None
@@ -198,6 +203,15 @@ class Model(nn.Module):
         output = self.vgg19(output)
         target = self.vgg19(target)
         return self.mse(output, target)
+
+    def step_scheduler(self):
+        if self.scheduler is not None:
+            lr_before = self.optimizer.param_groups[0]['lr']
+            self.scheduler.step()
+
+            lr = self.optimizer.param_groups[0]['lr']
+            if lr_before != lr:
+                print('Learning rate updated to: %.7f' % lr)
 
     def forward(self, x):
         return self.model(x)

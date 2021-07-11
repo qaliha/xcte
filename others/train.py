@@ -38,7 +38,7 @@ def main(opt):
 
     net = Model(device, opt.model, opt)
 
-    summaryEncoder = summary(net, input_size=(opt.batch, 3, 256, 256))
+    summaryEncoder = summary(net, input_size=(opt.batch, 3, 128, 128))
     num_epoch = opt.nepoch + 1
     tmp_epoch = 0
     for epoch in range(1, num_epoch):
@@ -96,6 +96,9 @@ def main(opt):
             epoch, num_epoch - 1,
             mean_compressiong_psnr
         ))
+
+        # update learning rate
+        net.step_scheduler()
 
         if not os.path.exists("checkpoint"):
             os.mkdir("checkpoint")
