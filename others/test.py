@@ -20,6 +20,11 @@ def main(opt):
 
     model.eval()
 
+    corrector = None
+    if opt.pix:
+        corrector = torch.load(opt.pix, map_location=device)
+        corrector.eval()
+
     transform_list = [transforms.ToTensor()]
 
     transform = transforms.Compose(transform_list)
@@ -33,6 +38,9 @@ def main(opt):
         halftoned_doed = halftoned_doed.unsqueeze(0).to(device)
 
         reconstructed = model(halftoned_doed)
+
+        if corrector is not None:
+            reconstructed = corrector(reconstructed)
 
         halftoned_doed_img = tensor2img(halftoned_doed)
         reconstructed_img = tensor2img(reconstructed)
@@ -49,6 +57,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Compressing')
 
     parser.add_argument('--model', required=True, help='model')
+    parser.add_argument('--pix', help='pix model')
     parser.add_argument('--ins', required=True, help='path')
     parser.add_argument('--out', required=True, help='path')
     parser.add_argument('--cuda', action='store_true', help='cuda')
