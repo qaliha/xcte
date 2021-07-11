@@ -25,8 +25,8 @@ def main(opt):
     transform = transforms.Compose(transform_list)
 
     with torch.no_grad():
-        input = load_img(opt. in, resize=False)
-        halftoned = load_img(opt. in, resize=False)
+        input = load_img(opt.ins, resize=False)
+        halftoned = load_img(opt.ins, resize=False)
         halftoned_doed = sp_halftone(halftoned)
 
         halftoned_doed = transform(halftoned_doed)
@@ -49,7 +49,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Compressing')
 
     parser.add_argument('--model', required=True, help='model')
-    parser.add_argument('--in', required=True, help='path')
+    parser.add_argument('--ins', required=True, help='path')
     parser.add_argument('--out', required=True, help='path')
     parser.add_argument('--cuda', action='store_true', help='cuda')
 
