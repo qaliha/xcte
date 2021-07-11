@@ -41,8 +41,8 @@ class PixCNN(nn.Module):
         super(PixCNN, self).__init__()
 
         self.conv_blocks = nn.Sequential(
-            ConvLayer(3, n_features, 3, 1, activation='relu'),
-            ConvLayer(n_features, n_features, 3, 1, activation='relu'),
+            ConvLayer(3, n_features, 3, 1, activation='prelu'),
+            ConvLayer(n_features, n_features, 3, 1, activation='prelu'),
             ConvLayer(n_features, 3, 3, 1),
         )
 
@@ -63,10 +63,10 @@ class ResidualBlockNext(nn.Module):
 
         blocks = []
         blocks.append(ConvLayer(n_features, n_features*2, 3,
-                      1, norm='batch', activation='relu'))
+                      1, norm='batch', activation='prelu'))
         for _ in range(num_layers-2):
             blocks.append(ConvLayer(n_features*2, n_features*2, 3,
-                          1, norm='batch', activation='relu'))
+                          1, norm='batch', activation='prelu'))
         blocks.append(ConvLayer(n_features*2, n_features, 3, 1, norm='batch'))
 
         self.conv_blocks = nn.Sequential(*blocks)
@@ -90,10 +90,10 @@ class ResidualBlock(nn.Module):
         assert(num_layers - 2 > 0)
 
         blocks = []
-        blocks.append(ConvLayer(3, n_features, 3, 1, activation='relu'))
+        blocks.append(ConvLayer(3, n_features, 3, 1, activation='prelu'))
         for _ in range(num_layers-2):
             blocks.append(ConvLayer(n_features, n_features,
-                          3, 1, activation='relu'))
+                          3, 1, activation='prelu'))
         blocks.append(ConvLayer(n_features, 3, 3, 1))
 
         self.conv_blocks = nn.Sequential(*blocks)
