@@ -65,6 +65,9 @@ def main(opt):
                     t_loss/max(1, iteration)
                 ))
 
+        # print loss
+        print(t_loss/max(1, iteration))
+
         data_len_test = len(testing_data_loader)
         bar_test = tqdm(enumerate(testing_data_loader, 1),
                         total=data_len_test, disable=opt.silent)
