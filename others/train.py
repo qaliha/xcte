@@ -27,9 +27,9 @@ def main(opt):
     root_path = "dataset/"
 
     # print seed
-    print(torch.seed)
+    print(torch.seed())
     if opt.cuda:
-        print(torch.cuda.seed)
+        print(torch.cuda.seed())
 
     train_set = get_training_set(root_path + opt.dataset)
     test_set = get_test_set(root_path + opt.dataset)
