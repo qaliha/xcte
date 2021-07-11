@@ -22,6 +22,7 @@ def main(opt):
 
     corrector = None
     if opt.pix:
+        print('using pix')
         corrector = torch.load(opt.pix, map_location=device)
         corrector.eval()
 
