@@ -9,16 +9,13 @@ from utils import ConvLayer, DeconvLayer, FeatureExtractor
 class ConvLayer(nn.Module):
     def __init__(self, in_channels, out_channels, kernel, stride, norm='skip', activation='skip'):
         super(ConvLayer, self).__init__()
-        assert(norm in ('skip', 'batch', 'channel'))
+        assert(norm in ('skip', 'channel'))
         assert(activation in ('skip', 'relu', 'prelu'))
 
         self.pad = nn.ZeroPad2d(kernel//2)
         self.conv = nn.Conv2d(in_channels, out_channels, kernel, stride)
         self.norm = None
         self.activation = None
-
-        if norm == 'batch':
-            self.norm = nn.BatchNorm2d(out_channels)
 
         if activation == 'relu':
             self.activation = nn.ReLU()
@@ -63,11 +60,11 @@ class ResidualBlockNext(nn.Module):
 
         blocks = []
         blocks.append(ConvLayer(n_features, n_features*2, 7,
-                      1, norm='batch', activation='relu'))
+                      1, activation='relu'))
         for _ in range(num_layers-2):
             blocks.append(ConvLayer(n_features*2, n_features*2, 7,
-                          1, norm='batch', activation='relu'))
-        blocks.append(ConvLayer(n_features*2, n_features, 3, 1, norm='batch'))
+                          1, activation='relu'))
+        blocks.append(ConvLayer(n_features*2, n_features, 3, 1))
 
         self.conv_blocks = nn.Sequential(*blocks)
 
