@@ -154,9 +154,10 @@ class ProgressivelyResidualDenoising(nn.Module):
         self.residual_detail = ProgressivelyResidualDetail(n_features)
 
     def forward(self, x):
+        identity = x
         content_feature = self.residual_content(x)
 
-        content_cat = torch.cat((x, content_feature), dim=1)
+        content_cat = torch.cat((identity, content_feature), dim=1)
         detail_feature_intermediete = self.residual_detail(content_cat)
 
         detail_feature = detail_feature_intermediete + content_feature
