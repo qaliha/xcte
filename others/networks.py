@@ -183,6 +183,9 @@ class Model(nn.Module):
 
         self.use_gradient_clipping = model in ('mod_resblocks')
 
+        if self.use_gradient_clipping:
+            print('using gradient clipping')
+
         if model == 'unet':
             self.model = UNet().to(device)
         elif model == 'mod_resblocks':
@@ -192,9 +195,13 @@ class Model(nn.Module):
             self.model = PixCNN().to(device)
 
         if model == 'mod_resblocks':
+            print('using SGD')
+
             self.optimizer = optim.SGD(
                 self.model.parameters(), lr=lr, momentum=0.9, weight_decay=decay)
         else:
+            print('using Adam')
+
             self.optimizer = optim.Adam(
                 self.model.parameters(), lr=lr, weight_decay=decay)
 
