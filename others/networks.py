@@ -172,7 +172,7 @@ class Model(nn.Module):
     def __init__(self, device, model, opt={}):
         super(Model, self).__init__()
         assert(model in ('unet', 'mod_resblocks', 'pixcnn'))
-        assert(opt.criterion in ('mse', 'vgg19', 'mae'))
+        assert(opt.criterion in ('mse', 'vgg19', 'huber'))
 
         decay = 0.0
         lr = opt.lr
@@ -203,7 +203,7 @@ class Model(nn.Module):
                 self.model.parameters(), lr=lr, weight_decay=decay)
 
         self.mse = nn.MSELoss()
-        self.mae = nn.L1Loss()
+        self.huber = nn.SmoothL1Loss()
         self.vgg19 = FeatureExtractor().to(device)
         self.scheduler = None
 
@@ -252,8 +252,8 @@ class Model(nn.Module):
     def get_losses(self):
         if self.criterion == 'mse':
             return self.mse(self.output, self.ground_truth)
-        elif self.criterion == 'mae':
-            return self.mae(self.output, self.ground_truth)
+        elif self.criterion == 'huber':
+            return self.huber(self.output, self.ground_truth)
         elif self.criterion == 'vgg19':
             return self.vgg19_loss(self.output, self.ground_truth)
 
