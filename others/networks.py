@@ -181,7 +181,7 @@ class Model(nn.Module):
         lr = opt.lr
         self.criterion = opt.criterion
 
-        self.use_gradient_clipping = model in ('mod_resblocks_w0')
+        self.use_gradient_clipping = False
 
         if self.use_gradient_clipping:
             print('using gradient clipping')
