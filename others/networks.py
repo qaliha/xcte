@@ -195,9 +195,9 @@ class Model(nn.Module):
         self.vgg19 = FeatureExtractor().to(device)
         self.scheduler = None
 
-        if model == 'mod_resblocks_w0sche':
+        if model == 'mod_resblocks':
             self.scheduler = optim.lr_scheduler.StepLR(
-                self.optimizer, step_size=10, gamma=0.5)
+                self.optimizer, step_size=4, gamma=0.5)
 
         self.input = None
         self.ground_truth = None
