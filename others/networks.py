@@ -56,13 +56,13 @@ class ResidualBlockNext(nn.Module):
 
         self.conv_1 = ConvLayer(3, n_features, 3, 1)
         self.conv_2 = ConvLayer(n_features, n_features, 3, 1)
-        self.conv_3 = ConvLayer(n_features, 3, 7, 1)
+        self.conv_3 = ConvLayer(n_features, 3, 3, 1)
 
         blocks = []
-        blocks.append(ConvLayer(n_features, n_features*2, 7,
+        blocks.append(ConvLayer(n_features, n_features*2, 3,
                       1, activation='relu'))
         for _ in range(num_layers-2):
-            blocks.append(ConvLayer(n_features*2, n_features*2, 7,
+            blocks.append(ConvLayer(n_features*2, n_features*2, 3,
                           1, activation='relu'))
         blocks.append(ConvLayer(n_features*2, n_features, 3, 1))
 
@@ -87,11 +87,11 @@ class ResidualBlock(nn.Module):
         assert(num_layers - 2 > 0)
 
         blocks = []
-        blocks.append(ConvLayer(3, n_features, 7, 1, activation='relu'))
+        blocks.append(ConvLayer(3, n_features, 3, 1, activation='relu'))
         for _ in range(num_layers-2):
             blocks.append(ConvLayer(n_features, n_features,
-                          7, 1, activation='relu'))
-        blocks.append(ConvLayer(n_features, 3, 7, 1))
+                          3, 1, activation='relu'))
+        blocks.append(ConvLayer(n_features, 3, 3, 1))
 
         self.conv_blocks = nn.Sequential(*blocks)
 
