@@ -9,8 +9,8 @@ from utils import ConvLayer, DeconvLayer, FeatureExtractor
 class ConvLayer(nn.Module):
     def __init__(self, in_channels, out_channels, kernel, stride, norm='skip', activation='skip'):
         super(ConvLayer, self).__init__()
-        assert(norm in ('skip', 'channel'))
-        assert(activation in ('skip', 'relu', 'prelu'))
+        assert(norm in ('skip'))
+        assert(activation in ('skip', 'relu'))
 
         self.pad = nn.ZeroPad2d(kernel//2)
         self.conv = nn.Conv2d(in_channels, out_channels, kernel, stride)
@@ -19,8 +19,6 @@ class ConvLayer(nn.Module):
 
         if activation == 'relu':
             self.activation = nn.ReLU()
-        elif activation == 'prelu':
-            self.activation = nn.PReLU()
 
     def forward(self, x):
         x = self.pad(x)
@@ -31,6 +29,214 @@ class ConvLayer(nn.Module):
             x = self.activation(x)
 
         return x
+
+
+class ResidualUnit(nn.Module):
+    def __init__(self, in_ch, out_ch):
+        super(ResidualUnit, self).__init__()
+
+        self.conv1 = ConvLayer(in_ch, out_ch, 3, 1, activation='relu')
+        self.conv2 = ConvLayer(out_ch, out_ch, 3, 1)
+
+    def forward(self, x):
+        identity_map = x
+        res = self.conv1(x)
+        res = self.conv2(res)
+
+        return torch.add(res, identity_map)
+
+
+class ProgressivelyResidualDetail(nn.Module):
+    def __init__(self, n_features, n_blocks=5):
+        super(ProgressivelyResidualDetail, self).__init__()
+
+        self.n_blocks = n_blocks
+
+        # features is residual unit convolutional feature number
+        self.conv_in = ConvLayer(6, n_features, 3, 1, activation='relu')
+        for m in range(self.n_blocks):
+            # residual block n_blocks times
+            resblock_m = ResidualUnit(n_features, n_features)
+            self.add_module(f'resblock_{str(m)}', resblock_m)
+        # out convolutional, without activation
+        self.conv_out = ConvLayer(n_features, 3, 3, 1)
+
+    def forward(self, x):
+        head = self.conv_in(x)
+        for m in range(self.n_blocks):
+            resblock_m = getattr(self, f'resblock_{str(m)}')
+            if m == 0:
+                x = resblock_m(head)
+            else:
+                x = resblock_m(x)
+
+        x += head
+        out = self.conv_out(x)
+
+        return out
+
+
+class ProgressivelyResidualContent(nn.Module):
+    def __init__(self, n_features, n_blocks=3):
+        super(ProgressivelyResidualContent, self).__init__()
+
+        self.n_blocks = n_blocks
+
+        # convolutional input
+        self.conv_in = ConvLayer(3, n_features, 3, 1, activation='relu')
+
+        # downsampling 1
+        self.conv_downsampling_1 = ConvLayer(
+            n_features, n_features*2, 2, 2, activation='relu')
+
+        # residual learning downsampling 1 (1 layer)
+        self.residual_downsampling_1 = ResidualUnit(n_features*2, n_features*2)
+
+        # downsampling 2
+        self.conv_downsampling_2 = ConvLayer(
+            n_features*2, n_features*4, 2, 2, activation='relu')
+
+        # deep residual learning
+        for m in range(self.n_blocks):
+            # residual block n_blocks times
+            resblock_m = ResidualUnit(n_features*4, n_features*4)
+            self.add_module(f'resblock_deep_{str(m)}', resblock_m)
+
+        # upsampling 1
+        self.conv_upsampling_1 = nn.Sequential(
+            nn.ConvTranspose2d(n_features*4, n_features*2, 2, 2),
+            nn.ReLU()
+        )
+        # residual learning upsampling 1 (1 layer)
+        self.residual_upsampling_1 = ResidualUnit(n_features*2, n_features*2)
+
+        # upsampling 2
+        self.conv_upsampling_2 = nn.Sequential(
+            nn.ConvTranspose2d(n_features*2, n_features, 2, 2),
+            nn.ReLU()
+        )
+
+        # convolutional output
+        self.conv_out = ConvLayer(n_features, 3, 3, 1)
+
+    def forward(self, x):
+        out_conv1 = self.conv_in(x)
+
+        x = self.conv_downsampling_1(out_conv1)
+        residual_down_1 = self.residual_downsampling_1(x)
+
+        head = self.conv_downsampling_2(residual_down_1)
+        for m in range(self.n_blocks):
+            resblock_m = getattr(self, f'resblock_deep_{str(m)}')
+            if m == 0:
+                x = resblock_m(head)
+            else:
+                x = resblock_m(x)
+
+        x += head
+
+        x = self.conv_upsampling_1(x)
+        residual_up_1 = self.residual_upsampling_1(x)
+
+        residual_up_1 += residual_down_1
+
+        x = self.conv_upsampling_2(residual_up_1)
+        out = self.conv_out(x)
+        return out
+
+
+class ProgressivelyResidualDenoising(nn.Module):
+    def __init__(self, n_features=64):
+        super(ProgressivelyResidualDenoising, self).__init__()
+
+        self.residual_content = ProgressivelyResidualContent(n_features)
+        self.residual_detail = ProgressivelyResidualDetail(n_features)
+
+    def forward(self, x):
+        content_feature = self.residual_content(x)
+
+        content_cat = torch.cat((x, content_feature), dim=1)
+        detail_feature_intermediete = self.residual_detail(content_cat)
+
+        detail_feature = detail_feature_intermediete + content_feature
+
+        return content_feature, detail_feature
+
+
+class Model(nn.Module):
+    def __init__(self, device, model, opt={}):
+        super(Model, self).__init__()
+        assert(model in ('mod_resblocks'))
+        assert(opt.criterion in ('-'))
+
+        self.model = ProgressivelyResidualDenoising(n_features=64).to(device)
+
+        # used loss function
+        self.mse = nn.MSELoss()
+        self.huber = nn.SmoothL1Loss()
+        self.vgg19 = FeatureExtractor().to(device)
+
+        self.optimizer = optim.Adam(self.model.parameters(), lr=opt.lr)
+
+        self.scheduler = None
+
+        if model == 'mod_resblocks':
+            self.scheduler = optim.lr_scheduler.StepLR(
+                self.optimizer, step_size=10, gamma=0.5)
+
+        self.input = None
+        self.ground_truth = None
+
+        # have two output for calculate loss
+        self.output = None
+        self.output_content = None
+
+    def vgg19_loss(self, output, target):
+        output = self.vgg19(output)
+        target = self.vgg19(target)
+        return self.mse(output, target)
+
+    def step_scheduler(self):
+        if self.scheduler is not None:
+            lr_before = self.optimizer.param_groups[0]['lr']
+            self.scheduler.step()
+
+            lr = self.optimizer.param_groups[0]['lr']
+            if lr_before != lr:
+                print('Learning rate updated to: %.7f' % lr)
+
+    def forward(self, x, get_content=False):
+        content_img, detail_img = self.model(x)
+
+        if get_content:
+            return detail_img, content_img
+        else:
+            return detail_img
+
+    def set_input(self, input, ground_truth):
+        self.input = input
+        self.ground_truth = ground_truth
+
+    def get_losses(self):
+        loss_content_mse = self.mse(self.output_content, self.ground_truth)
+        loss_network_perceptual = self.vgg19_loss(
+            self.output, self.ground_truth)
+        loss_smoothing = self.huber(self.output, self.ground_truth)
+
+        return loss_content_mse + 2.0*loss_network_perceptual + loss_smoothing
+
+    def optimize(self):
+        self.optimizer.zero_grad()
+        feat_f, con_f = self.forward(self.input, get_content=True)
+
+        self.output = feat_f
+        self.output_content = con_f
+
+        loss = self.get_losses()
+        loss.backward()
+        self.optimizer.step()
+
+        return loss.item()
 
 
 class PixCNN(nn.Module):
@@ -168,105 +374,105 @@ class UNet(nn.Module):
         return out
 
 
-class Model(nn.Module):
-    def __init__(self, device, model, opt={}):
-        super(Model, self).__init__()
-        assert(model in ('unet', 'mod_resblocks', 'pixcnn'))
-        assert(opt.criterion in ('mse', 'vgg19', 'huber'))
+# class Model(nn.Module):
+#     def __init__(self, device, model, opt={}):
+#         super(Model, self).__init__()
+#         assert(model in ('unet', 'mod_resblocks', 'pixcnn'))
+#         assert(opt.criterion in ('mse', 'vgg19', 'huber'))
 
-        decay = 0.0
-        lr = opt.lr
-        self.criterion = opt.criterion
+#         decay = 0.0
+#         lr = opt.lr
+#         self.criterion = opt.criterion
 
-        self.use_gradient_clipping = False
+#         self.use_gradient_clipping = False
 
-        if self.use_gradient_clipping:
-            print('using gradient clipping')
+#         if self.use_gradient_clipping:
+#             print('using gradient clipping')
 
-        if model == 'unet':
-            self.model = UNet().to(device)
-        elif model == 'mod_resblocks':
-            decay = 0.0001
-            self.model = ModifiedResidualModel().to(device)
-        elif model == 'pixcnn':
-            self.model = PixCNN().to(device)
+#         if model == 'unet':
+#             self.model = UNet().to(device)
+#         elif model == 'mod_resblocks':
+#             decay = 0.0001
+#             self.model = ModifiedResidualModel().to(device)
+#         elif model == 'pixcnn':
+#             self.model = PixCNN().to(device)
 
-        if model == 'mod_resblocks_w0':
-            print('using SGD')
+#         if model == 'mod_resblocks_w0':
+#             print('using SGD')
 
-            self.optimizer = optim.SGD(
-                self.model.parameters(), lr=lr, momentum=0.9, weight_decay=decay)
-        else:
-            print('using Adam')
+#             self.optimizer = optim.SGD(
+#                 self.model.parameters(), lr=lr, momentum=0.9, weight_decay=decay)
+#         else:
+#             print('using Adam')
 
-            self.optimizer = optim.Adam(
-                self.model.parameters(), lr=lr, weight_decay=decay)
+#             self.optimizer = optim.Adam(
+#                 self.model.parameters(), lr=lr, weight_decay=decay)
 
-        self.mse = nn.MSELoss()
-        self.huber = nn.SmoothL1Loss()
-        self.vgg19 = FeatureExtractor().to(device)
-        self.scheduler = None
+#         self.mse = nn.MSELoss()
+#         self.huber = nn.SmoothL1Loss()
+#         self.vgg19 = FeatureExtractor().to(device)
+#         self.scheduler = None
 
-        if model == 'mod_resblocks':
-            self.scheduler = optim.lr_scheduler.StepLR(
-                self.optimizer, step_size=10, gamma=0.5)
+#         if model == 'mod_resblocks':
+#             self.scheduler = optim.lr_scheduler.StepLR(
+#                 self.optimizer, step_size=10, gamma=0.5)
 
-        self.input = None
-        self.ground_truth = None
-        self.output = None
+#         self.input = None
+#         self.ground_truth = None
+#         self.output = None
 
-    def vgg19_loss(self, output, target):
-        output = self.vgg19(output)
-        target = self.vgg19(target)
-        return self.mse(output, target)
+#     def vgg19_loss(self, output, target):
+#         output = self.vgg19(output)
+#         target = self.vgg19(target)
+#         return self.mse(output, target)
 
-    def step_scheduler(self):
-        if self.scheduler is not None:
-            lr_before = self.optimizer.param_groups[0]['lr']
-            self.scheduler.step()
+#     def step_scheduler(self):
+#         if self.scheduler is not None:
+#             lr_before = self.optimizer.param_groups[0]['lr']
+#             self.scheduler.step()
 
-            lr = self.optimizer.param_groups[0]['lr']
-            if lr_before != lr:
-                print('Learning rate updated to: %.7f' % lr)
+#             lr = self.optimizer.param_groups[0]['lr']
+#             if lr_before != lr:
+#                 print('Learning rate updated to: %.7f' % lr)
 
-    def forward(self, x):
-        return self.model(x)
+#     def forward(self, x):
+#         return self.model(x)
 
-    def set_requires_grad_cs(self, requires_grad=False):
-        """Set requies_grad=Fasle for all the networks to avoid unnecessary computations
-        Parameters:
-            nets (network list)   -- a list of networks
-            requires_grad (bool)  -- whether the networks require gradients or not
-        """
-        if not isinstance(self.model, list):
-            nets = [self.model]
-        for net in nets:
-            if net is not None:
-                for param in net.parameters():
-                    param.requires_grad = requires_grad
+#     def set_requires_grad_cs(self, requires_grad=False):
+#         """Set requies_grad=Fasle for all the networks to avoid unnecessary computations
+#         Parameters:
+#             nets (network list)   -- a list of networks
+#             requires_grad (bool)  -- whether the networks require gradients or not
+#         """
+#         if not isinstance(self.model, list):
+#             nets = [self.model]
+#         for net in nets:
+#             if net is not None:
+#                 for param in net.parameters():
+#                     param.requires_grad = requires_grad
 
-    def set_input(self, input, ground_truth):
-        self.input = input
-        self.ground_truth = ground_truth
+#     def set_input(self, input, ground_truth):
+#         self.input = input
+#         self.ground_truth = ground_truth
 
-    def get_losses(self):
-        if self.criterion == 'mse':
-            return self.mse(self.output, self.ground_truth)
-        elif self.criterion == 'huber':
-            return self.huber(self.output, self.ground_truth)
-        elif self.criterion == 'vgg19':
-            return self.vgg19_loss(self.output, self.ground_truth)
+#     def get_losses(self):
+#         if self.criterion == 'mse':
+#             return self.mse(self.output, self.ground_truth)
+#         elif self.criterion == 'huber':
+#             return self.huber(self.output, self.ground_truth)
+#         elif self.criterion == 'vgg19':
+#             return self.vgg19_loss(self.output, self.ground_truth)
 
-    def optimize(self):
-        self.optimizer.zero_grad()
-        self.output = self.forward(self.input)
-        loss = self.get_losses()
-        loss.backward()
-        if self.use_gradient_clipping:
-            nn.utils.clip_grad_value_(self.model.parameters(), 0.1)
-        self.optimizer.step()
+#     def optimize(self):
+#         self.optimizer.zero_grad()
+#         self.output = self.forward(self.input)
+#         loss = self.get_losses()
+#         loss.backward()
+#         if self.use_gradient_clipping:
+#             nn.utils.clip_grad_value_(self.model.parameters(), 0.1)
+#         self.optimizer.step()
 
-        return loss.item()
+#         return loss.item()
 
 
 if __name__ == '__main__':
