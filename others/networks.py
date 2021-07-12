@@ -251,7 +251,7 @@ class Model(nn.Module):
         loss = self.get_losses()
         loss.backward()
         if self.use_gradient_clipping:
-            nn.utils.clip_grad_norm_(self.model.parameters(), 0.1)
+            nn.utils.clip_grad_value_(self.model.parameters(), 0.1)
         self.optimizer.step()
 
         return loss.item()
