@@ -136,9 +136,10 @@ class ProgressivelyResidualContent(nn.Module):
         x += head
 
         x = self.conv_upsampling_1(x)
-        residual_up_1 = self.residual_upsampling_1(x)
 
-        residual_up_1 += residual_down_1
+        x += residual_down_1
+
+        residual_up_1 = self.residual_upsampling_1(x)
 
         x = self.conv_upsampling_2(residual_up_1)
         out = self.conv_out(x)
