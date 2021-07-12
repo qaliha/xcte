@@ -118,7 +118,7 @@ def main(opt):
 
         torch.save(net, model_out_path)
 
-    if opt.model == 'mod_resblocks':
+    if opt.model == 'mod_resblocks_w0':
         # train pixCNN after training denoising model
         pixcnn_max_epochs = 10
         pix = Model(device, 'pixcnn', opt)
