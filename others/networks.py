@@ -191,8 +191,13 @@ class Model(nn.Module):
         elif model == 'pixcnn':
             self.model = PixCNN().to(device)
 
-        self.optimizer = optim.Adam(
-            self.model.parameters(), lr=lr, weight_decay=decay)
+        if model == 'mod_resblocks':
+            self.optimizer = optim.SGD(
+                self.model.parameters(), lr=lr, momentum=0.9, weight_decay=decay)
+        else:
+            self.optimizer = optim.Adam(
+                self.model.parameters(), lr=lr, weight_decay=decay)
+
         self.mse = nn.MSELoss()
         self.vgg19 = FeatureExtractor().to(device)
         self.scheduler = None
