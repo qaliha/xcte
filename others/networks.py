@@ -172,7 +172,7 @@ class Model(nn.Module):
     def __init__(self, device, model, opt={}):
         super(Model, self).__init__()
         assert(model in ('unet', 'mod_resblocks', 'pixcnn'))
-        assert(opt.criterion in ('mse', 'vgg19'))
+        assert(opt.criterion in ('mse', 'vgg19', 'mae'))
 
         decay = 0.0
         lr = opt.lr
