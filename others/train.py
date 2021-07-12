@@ -65,7 +65,7 @@ def main(opt):
 
             t_loss += losses
             if not opt.silent:
-                bar.set_description(desc='itr: %d/%d [%3d/%3d] [Dec: %.8f] Training' % (
+                bar.set_description(desc='itr: %d/%d [%3d/%3d] [D: %.8f]' % (
                     iteration, data_len, epoch, num_epoch - 1,
                     t_loss/max(1, iteration)
                 ))
@@ -94,7 +94,7 @@ def main(opt):
                 psnrs.append(tmp_psnr)
 
                 if not opt.silent:
-                    bar_test.set_description(desc='itr: %d/%d [%3d/%3d] PSNR: %.4fdb Testing Image' % (
+                    bar_test.set_description(desc='itr: %d/%d [%3d/%3d] PSNR: %.4fdb' % (
                         iteration, data_len_test, epoch, num_epoch - 1,
                         tmp_psnr
                     ))
@@ -138,19 +138,19 @@ def main(opt):
             pix.train()
 
             # set requires grad False for net
-            net.set_requires_grad_cs(False)
             net.eval()
             for iteration, batch in bar:
                 clean = batch[0].to(device)
                 halftoned = batch[1].to(device)
 
                 reconstructed = net(halftoned)
-                pix.set_input(reconstructed, clean)
+                # detach input to make sure not available on graph
+                pix.set_input(reconstructed.detach(), clean)
                 losses = pix.optimize()
 
                 t_loss += losses
                 if not opt.silent:
-                    bar.set_description(desc='itr: %d/%d [%3d/%3d] [CorrectedLoss: %.8f] Training Pix' % (
+                    bar.set_description(desc='itr: %d/%d [%3d/%3d] [CL: %.8f]' % (
                         iteration, data_len, epoch, num_epoch - 1,
                         t_loss/max(1, iteration)
                     ))
@@ -181,7 +181,7 @@ def main(opt):
                     psnrs.append(tmp_psnr)
 
                     if not opt.silent:
-                        bar_test.set_description(desc='itr: %d/%d [%3d/%3d] PSNR: %.4fdb Testing Image' % (
+                        bar_test.set_description(desc='itr: %d/%d [%3d/%3d] PSNR: %.4fdb' % (
                             iteration, data_len_test, epoch, num_epoch - 1,
                             tmp_psnr
                         ))

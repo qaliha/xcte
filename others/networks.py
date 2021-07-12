@@ -12,7 +12,7 @@ class ConvLayer(nn.Module):
         assert(norm in ('skip', 'batch', 'channel'))
         assert(activation in ('skip', 'relu', 'prelu'))
 
-        self.pad = nn.ReflectionPad2d(kernel//2)
+        self.pad = nn.ZeroPad2d(kernel//2)
         self.conv = nn.Conv2d(in_channels, out_channels, kernel, stride)
         self.norm = None
         self.activation = None
@@ -59,13 +59,13 @@ class ResidualBlockNext(nn.Module):
 
         self.conv_1 = ConvLayer(3, n_features, 3, 1)
         self.conv_2 = ConvLayer(n_features, n_features, 3, 1)
-        self.conv_3 = ConvLayer(n_features, 3, 3, 1)
+        self.conv_3 = ConvLayer(n_features, 3, 7, 1)
 
         blocks = []
-        blocks.append(ConvLayer(n_features, n_features*2, 3,
+        blocks.append(ConvLayer(n_features, n_features*2, 7,
                       1, norm='batch', activation='prelu'))
         for _ in range(num_layers-2):
-            blocks.append(ConvLayer(n_features*2, n_features*2, 3,
+            blocks.append(ConvLayer(n_features*2, n_features*2, 7,
                           1, norm='batch', activation='prelu'))
         blocks.append(ConvLayer(n_features*2, n_features, 3, 1, norm='batch'))
 
@@ -90,11 +90,11 @@ class ResidualBlock(nn.Module):
         assert(num_layers - 2 > 0)
 
         blocks = []
-        blocks.append(ConvLayer(3, n_features, 3, 1, activation='prelu'))
+        blocks.append(ConvLayer(3, n_features, 7, 1, activation='prelu'))
         for _ in range(num_layers-2):
             blocks.append(ConvLayer(n_features, n_features,
-                          3, 1, activation='prelu'))
-        blocks.append(ConvLayer(n_features, 3, 3, 1))
+                          7, 1, activation='prelu'))
+        blocks.append(ConvLayer(n_features, 3, 7, 1))
 
         self.conv_blocks = nn.Sequential(*blocks)
 
@@ -178,6 +178,8 @@ class Model(nn.Module):
         assert(opt.criterion in ('mse', 'vgg19'))
 
         decay = 0.0
+        lr = opt.lr
+        self.criterion = opt.criterion
 
         if model == 'unet':
             self.model = UNet().to(device)
@@ -188,8 +190,7 @@ class Model(nn.Module):
             self.model = PixCNN().to(device)
 
         self.optimizer = optim.Adam(
-            self.model.parameters(), lr=opt.lr, weight_decay=decay)
-        self.criterion = opt.criterion
+            self.model.parameters(), lr=lr, weight_decay=decay)
         self.mse = nn.MSELoss()
         self.vgg19 = FeatureExtractor().to(device)
         self.scheduler = None
