@@ -181,6 +181,8 @@ class Model(nn.Module):
         lr = opt.lr
         self.criterion = opt.criterion
 
+        self.use_gradient_clipping = model in ('mod_resblocks')
+
         if model == 'unet':
             self.model = UNet().to(device)
         elif model == 'mod_resblocks':
@@ -248,6 +250,8 @@ class Model(nn.Module):
         self.output = self.forward(self.input)
         loss = self.get_losses()
         loss.backward()
+        if self.use_gradient_clipping:
+            nn.utils.clip_grad_norm_(self.model.parameters(), 0.1)
         self.optimizer.step()
 
         return loss.item()
