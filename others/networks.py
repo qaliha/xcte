@@ -87,14 +87,14 @@ class ProgressivelyResidualContent(nn.Module):
 
         # downsampling 1
         self.conv_downsampling_1 = ConvLayer(
-            n_features, n_features*2, 2, 2, activation='relu')
+            n_features, n_features*2, 3, 2, activation='relu')
 
         # residual learning downsampling 1 (1 layer)
         self.residual_downsampling_1 = ResidualUnit(n_features*2, n_features*2)
 
         # downsampling 2
         self.conv_downsampling_2 = ConvLayer(
-            n_features*2, n_features*4, 2, 2, activation='relu')
+            n_features*2, n_features*4, 3, 2, activation='relu')
 
         # deep residual learning
         for m in range(self.n_blocks):
