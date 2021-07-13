@@ -149,7 +149,7 @@ class ProgressivelyResidualContent(nn.Module):
 
 
 class ProgressivelyResidualDenoising(nn.Module):
-    def __init__(self, n_features=48):
+    def __init__(self, n_features):
         super(ProgressivelyResidualDenoising, self).__init__()
 
         self.residual_content = ProgressivelyResidualContent(n_features)
@@ -172,7 +172,7 @@ class Model(nn.Module):
         assert(model in ('mod_resblocks'))
         assert(opt.criterion in ('-'))
 
-        self.model = ProgressivelyResidualDenoising(n_features=64).to(device)
+        self.model = ProgressivelyResidualDenoising(n_features=48).to(device)
 
         # used loss function
         self.mse = nn.MSELoss()
