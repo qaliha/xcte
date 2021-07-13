@@ -19,6 +19,8 @@ class ConvLayer(nn.Module):
 
         if activation == 'relu':
             self.activation = nn.ReLU()
+        elif activation == 'prelu':
+            self.activation = nn.PReLU()
 
     def forward(self, x):
         x = self.pad(x)
@@ -35,7 +37,7 @@ class ResidualUnit(nn.Module):
     def __init__(self, in_ch, out_ch):
         super(ResidualUnit, self).__init__()
 
-        self.conv1 = ConvLayer(in_ch, out_ch, 3, 1, activation='relu')
+        self.conv1 = ConvLayer(in_ch, out_ch, 3, 1, activation='prelu')
         self.conv2 = ConvLayer(out_ch, out_ch, 3, 1)
 
     def forward(self, x):
@@ -53,7 +55,7 @@ class ProgressivelyResidualDetail(nn.Module):
         self.n_blocks = n_blocks
 
         # features is residual unit convolutional feature number
-        self.conv_in = ConvLayer(6, n_features, 3, 1, activation='relu')
+        self.conv_in = ConvLayer(6, n_features, 3, 1, activation='prelu')
         for m in range(self.n_blocks):
             # residual block n_blocks times
             resblock_m = ResidualUnit(n_features, n_features)
@@ -77,24 +79,24 @@ class ProgressivelyResidualDetail(nn.Module):
 
 
 class ProgressivelyResidualContent(nn.Module):
-    def __init__(self, n_features, n_blocks=3):
+    def __init__(self, n_features, n_blocks=2):
         super(ProgressivelyResidualContent, self).__init__()
 
         self.n_blocks = n_blocks
 
         # convolutional input
-        self.conv_in = ConvLayer(3, n_features, 3, 1, activation='relu')
+        self.conv_in = ConvLayer(3, n_features, 3, 1, activation='prelu')
 
         # downsampling 1
         self.conv_downsampling_1 = ConvLayer(
-            n_features, n_features*2, 3, 2, activation='relu')
+            n_features, n_features*2, 3, 2, activation='prelu')
 
         # residual learning downsampling 1 (1 layer)
         self.residual_downsampling_1 = ResidualUnit(n_features*2, n_features*2)
 
         # downsampling 2
         self.conv_downsampling_2 = ConvLayer(
-            n_features*2, n_features*4, 3, 2, activation='relu')
+            n_features*2, n_features*4, 3, 2, activation='prelu')
 
         # deep residual learning
         for m in range(self.n_blocks):
@@ -147,7 +149,7 @@ class ProgressivelyResidualContent(nn.Module):
 
 
 class ProgressivelyResidualDenoising(nn.Module):
-    def __init__(self, n_features=64):
+    def __init__(self, n_features=48):
         super(ProgressivelyResidualDenoising, self).__init__()
 
         self.residual_content = ProgressivelyResidualContent(n_features)
@@ -245,8 +247,8 @@ class PixCNN(nn.Module):
         super(PixCNN, self).__init__()
 
         self.conv_blocks = nn.Sequential(
-            ConvLayer(3, n_features, 3, 1, activation='relu'),
-            ConvLayer(n_features, n_features, 3, 1, activation='relu'),
+            ConvLayer(3, n_features, 3, 1, activation='prelu'),
+            ConvLayer(n_features, n_features, 3, 1, activation='prelu'),
             ConvLayer(n_features, 3, 3, 1),
         )
 
@@ -267,10 +269,10 @@ class ResidualBlockNext(nn.Module):
 
         blocks = []
         blocks.append(ConvLayer(n_features, n_features*2, 3,
-                      1, activation='relu'))
+                      1, activation='prelu'))
         for _ in range(num_layers-2):
             blocks.append(ConvLayer(n_features*2, n_features*2, 3,
-                          1, activation='relu'))
+                          1, activation='prelu'))
         blocks.append(ConvLayer(n_features*2, n_features, 3, 1))
 
         self.conv_blocks = nn.Sequential(*blocks)
@@ -294,10 +296,10 @@ class ResidualBlock(nn.Module):
         assert(num_layers - 2 > 0)
 
         blocks = []
-        blocks.append(ConvLayer(3, n_features, 3, 1, activation='relu'))
+        blocks.append(ConvLayer(3, n_features, 3, 1, activation='prelu'))
         for _ in range(num_layers-2):
             blocks.append(ConvLayer(n_features, n_features,
-                          3, 1, activation='relu'))
+                          3, 1, activation='prelu'))
         blocks.append(ConvLayer(n_features, 3, 3, 1))
 
         self.conv_blocks = nn.Sequential(*blocks)
