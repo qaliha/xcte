@@ -10,7 +10,7 @@ class ConvLayer(nn.Module):
     def __init__(self, in_channels, out_channels, kernel, stride, norm='skip', activation='skip'):
         super(ConvLayer, self).__init__()
         assert(norm in ('skip'))
-        assert(activation in ('skip', 'relu'))
+        assert(activation in ('skip', 'relu', 'prelu'))
 
         self.pad = nn.ZeroPad2d(kernel//2)
         self.conv = nn.Conv2d(in_channels, out_channels, kernel, stride)
